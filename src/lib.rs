@@ -72,6 +72,7 @@ mod pattern;
 mod rewrite;
 mod run;
 mod subst;
+mod rete;
 
 pub use dot::Dot;
 pub use eclass::{EClass, Metadata};
@@ -83,6 +84,7 @@ pub use pattern::{Pattern, SearchMatches};
 pub use rewrite::{Applier, Condition, ConditionEqual, ConditionalApplier, Rewrite, Searcher};
 pub use run::*;
 pub use subst::{Subst, Var};
+pub use rete::RetePat;
 
 #[cfg(test)]
 fn init_logger() {

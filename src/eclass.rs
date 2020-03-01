@@ -3,7 +3,7 @@ use std::iter::ExactSizeIterator;
 
 use crate::{
     unionfind::{Key, UnionFind, Value},
-    EGraph, ENode, Id, Language,
+    EGraph, ENode, Id, Language, RetePat
 };
 
 /** Arbitrary data associated with an [`EClass`].
@@ -129,6 +129,8 @@ pub struct EClass<L, M> {
     pub nodes: Vec<ENode<L>>,
     /// The metadata associated with this eclass.
     pub metadata: M,
+
+    pub rpats: Vec<RetePat>,
     #[cfg(feature = "parent-pointers")]
     #[doc(hidden)]
     pub(crate) parents: indexmap::IndexSet<usize>,
@@ -151,6 +153,14 @@ impl<L, M> EClass<L, M> {
     }
 }
 
+fn extend_owned<T>(mut less : Vec<T>, mut more: Vec<T>) -> Vec<T> {
+        if more.len() < less.len() {
+            std::mem::swap(&mut less, &mut more);
+        }
+        more.extend(less);
+        more
+}
+
 impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
     type Error = std::convert::Infallible;
     fn merge<K: Key>(
@@ -158,20 +168,11 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
         to: Self,
         from: Self,
     ) -> Result<Self, Self::Error> {
-        let mut less = to.nodes;
-        let mut more = from.nodes;
-
-        // make sure less is actually smaller
-        if more.len() < less.len() {
-            std::mem::swap(&mut less, &mut more);
-        }
-
-        more.extend(less);
-
         let mut eclass = EClass {
             id: to.id,
-            nodes: more,
+            nodes: extend_owned(to.nodes, from.nodes),
             metadata: to.metadata.merge(&from.metadata),
+	    rpats: extend_owned(to.rpats, from.rpats),
             #[cfg(feature = "parent-pointers")]
             parents: {
                 let mut parents = to.parents;

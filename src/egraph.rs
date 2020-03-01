@@ -326,6 +326,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             metadata: M::make(self, &enode),
             #[cfg(feature = "parent-pointers")]
             parents: IndexSet::new(),
+            rpats: vec![],
         };
         M::modify(&mut class);
         let next_id = self.classes.make_set(class);
