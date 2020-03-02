@@ -20,6 +20,7 @@ pub struct Rete<L> {
     // use smallvec or no?
     map: HashMap<L, SmallVec<[RetePat; 2]>,>,
 }
+
 impl<L : std::hash::Hash + Eq> Default for Rete<L> {
     fn default() -> Rete<L> {
         Rete {

@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use indexmap::{IndexMap, IndexSet};
 use instant::{Duration, Instant};
 use log::*;
@@ -142,7 +143,7 @@ println!(
 
 ```
 */
-pub struct Runner<'a, L, M, IterData = ()> {
+pub struct Runner<L, M, IterData = ()> {
     /// The [`EGraph`](struct.EGraph.html) used.
     pub egraph: EGraph<L, M>,
     /// Data accumulated over each [`Iteration`](struct.Iteration.html).
@@ -154,7 +155,7 @@ pub struct Runner<'a, L, M, IterData = ()> {
     /// stopped yet.
     pub stop_reason: Option<StopReason>,
 
-    rules: &'a [Rewrite<L, M>],
+    rules: Vec<Rewrite<L, M>>,
 
     // limits
     iter_limit: usize,
@@ -165,7 +166,7 @@ pub struct Runner<'a, L, M, IterData = ()> {
     scheduler: Box<dyn RewriteScheduler<L, M>>,
 }
 
-impl<'a, L, M> Runner<'a, L, M, ()>
+impl<L, M> Runner<L, M, ()>
 where
     L: Language,
     M: Metadata<L>,
@@ -177,7 +178,7 @@ where
     }
 }
 
-impl<'a, L, M, IterData> Default for Runner<'a, L, M, IterData>
+impl<L, M, IterData> Default for Runner<L, M, IterData>
 where
     L: Language,
     M: Metadata<L>,
@@ -191,7 +192,7 @@ where
             egraph: EGraph::default(),
             roots: vec![],
             iterations: vec![],
-            rules: &[],
+            rules: vec![],
             stop_reason: None,
 
             start_time: None,
@@ -251,7 +252,7 @@ pub struct Iteration<IterData> {
 
 type RunnerResult<T> = std::result::Result<T, StopReason>;
 
-impl<'a, L, M, IterData> Runner<'a, L, M, IterData>
+impl<L, M, IterData> Runner<L, M, IterData>
 where
     L: Language,
     M: Metadata<L>,
@@ -300,7 +301,11 @@ where
     }
 
     /// Replace the [`Rules`](struct.Rewrite.html) of this `Runner`.
-    pub fn with_rules(self, rules: &'a [Rewrite<L, M>]) -> Self {
+    pub fn with_rules(mut self, mut rules: Vec<Rewrite<L, M>>) -> Self {
+	for rewrite in &mut rules {
+	    let retepat = self.egraph.rete.add_pattern(&rewrite.searcher.ast);
+	    Rc::make_mut(&mut rewrite.searcher).retepat = retepat;
+	}
         Self { rules, ..self }
     }
 
@@ -335,8 +340,8 @@ where
         let search_time = Instant::now();
 
         let mut matches = Vec::new();
-        for rule in self.rules {
-            let ms = self.scheduler.search_rewrite(i, &self.egraph, rule);
+        for rule in &self.rules {
+            let ms = self.scheduler.search_rewrite(i, &self.egraph, &rule);
             matches.push(ms);
             self.check_limits()?;
         }

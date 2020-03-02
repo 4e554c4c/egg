@@ -25,7 +25,7 @@ pub struct Rewrite<L, M> {
     name: String,
     long_name: String,
     //searcher: Rc<dyn Searcher<L, M>>,
-    searcher: Rc<Pattern<L>>,
+    pub searcher: Rc<Pattern<L>>,
     applier: Rc<dyn Applier<L, M>>,
 }
 

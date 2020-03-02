@@ -128,7 +128,7 @@ pub struct EGraph<L, M> {
     memo: IndexMap<ENode<L>, Id>,
     classes: UnionFind<Id, EClass<L, M>>,
     unions_since_rebuild: usize,
-    rete: Rete<L>,
+    pub rete: Rete<L>,
 }
 
 // manual debug impl to avoid L: Language bound on EGraph defn
