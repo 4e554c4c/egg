@@ -3,8 +3,10 @@ use std::convert::TryFrom;
 use log::*;
 
 use crate::{
-    machine, Applier, EGraph, ENode, Id, Language, Metadata, RecExpr, Searcher, Subst, Var,
+    machine, Applier, EGraph, ENode, Id, Language, Metadata, RecExpr, Searcher, Subst, Var, RetePat
 };
+
+use std::usize;
 
 /// A pattern that can function as either a [`Searcher`] or [`Applier`].
 ///
@@ -66,8 +68,9 @@ use crate::{
 /// [`Language`]: trait.Language.html
 #[derive(Debug, PartialEq, Clone)]
 pub struct Pattern<L> {
-    ast: PatternAst<L>,
+    pub(crate) ast: PatternAst<L>,
     program: machine::Program<L>,
+    pub(crate) retepat: RetePat,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -81,7 +84,7 @@ pub(crate) enum PatternAst<L> {
 impl<L: Language> PatternAst<L> {
     pub(crate) fn compile(self) -> Pattern<L> {
         let program = machine::Program::compile_from_pat(&self);
-        Pattern { ast: self, program }
+        Pattern { ast: self, program, retepat: usize::MAX}
     }
 }
 
