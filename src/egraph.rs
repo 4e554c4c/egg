@@ -4,7 +4,7 @@ use indexmap::{IndexMap, IndexSet};
 use log::*;
 
 use crate::{unionfind::UnionFind, Dot, EClass, ENode, Id, Language, Metadata, RecExpr};
-use crate::rete::Rete;
+use crate::rete::{Rete,RetePat};
 
 /** A data structure to keep track of equalities between expressions.
 
@@ -330,17 +330,22 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             #[cfg(feature = "parent-pointers")]
             parents: IndexSet::new(),
             #[cfg(feature = "parent-pointers")]
-            rpats: vec![],
+            rpats: self.rete.search(
+                &enode.map_children(|id| self.classes.get(id).rpats.as_slice())),
         };
         M::modify(&mut class);
         let next_id = self.classes.make_set(class);
         trace!("Added  {:4}: {:?}", next_id, enode);
 
         let (idx, old) = self.memo.insert_full(enode, next_id);
-        let _ = idx;
         #[cfg(feature = "parent-pointers")]
-        for &child in &self.memo.get_index(idx).unwrap().0.children {
-            self.classes.get_mut(child).parents.insert(idx);
+        {
+            for &child in &self.memo.get_index(idx).unwrap().0.children {
+                self.classes.get_mut(child).parents.insert(idx);
+            }
+            for &pat in &self.classes.get(next_id).rpats {
+                self.rete.add_match(pat, next_id);
+            }
         }
 
         assert_eq!(old, None);
