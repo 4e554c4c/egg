@@ -3,8 +3,11 @@ use std::iter::ExactSizeIterator;
 
 use crate::{
     unionfind::{Key, UnionFind, Value},
-    EGraph, ENode, Id, Language, RetePat
+    EGraph, ENode, Id, Language,
 };
+
+#[cfg(feature = "parent-pointers")]
+use crate::RetePat;
 
 /** Arbitrary data associated with an [`EClass`].
 
@@ -130,6 +133,7 @@ pub struct EClass<L, M> {
     /// The metadata associated with this eclass.
     pub metadata: M,
 
+    #[cfg(feature = "parent-pointers")]
     pub rpats: Vec<RetePat>,
     #[cfg(feature = "parent-pointers")]
     #[doc(hidden)]
@@ -172,6 +176,7 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
             id: to.id,
             nodes: extend_owned(to.nodes, from.nodes),
             metadata: to.metadata.merge(&from.metadata),
+            #[cfg(feature = "parent-pointers")]
 	    rpats: extend_owned(to.rpats, from.rpats),
             #[cfg(feature = "parent-pointers")]
             parents: {
