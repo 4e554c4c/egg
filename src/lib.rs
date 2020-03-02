@@ -72,7 +72,7 @@ mod pattern;
 mod rewrite;
 mod run;
 mod subst;
-#[cfg(feature = "parent-pointers")]
+#[cfg(feature = "rete")]
 mod rete;
 
 pub use dot::Dot;
@@ -85,7 +85,7 @@ pub use pattern::{Pattern, SearchMatches};
 pub use rewrite::{Applier, Condition, ConditionEqual, ConditionalApplier, Rewrite, Searcher};
 pub use run::*;
 pub use subst::{Subst, Var};
-#[cfg(feature = "parent-pointers")]
+#[cfg(feature = "rete")]
 pub use rete::RetePat;
 
 #[cfg(test)]

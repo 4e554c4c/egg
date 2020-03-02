@@ -1,3 +1,4 @@
+#![cfg(not(feature = "rete"))]
 use egg::{rewrite as rw, *};
 
 type EGraph = egg::EGraph<Lang, Meta>;

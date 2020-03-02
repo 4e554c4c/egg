@@ -31,7 +31,8 @@ ordered-float = "1"
 parent-pointers = [ "itertools" ]
 stdweb = [ "instant/stdweb" ]
 serde-1 = [ "serde", "indexmap/serde-1" ]
-default=["parent-pointers"]
+rete=["parent-pointers"]
+default=["rete"]
 
 [workspace]
 members = [

@@ -4,6 +4,7 @@ use indexmap::{IndexMap, IndexSet};
 use log::*;
 
 use crate::{unionfind::UnionFind, Dot, EClass, ENode, Id, Language, Metadata, RecExpr};
+#[cfg(feature = "rete")]
 use crate::rete::{Rete,RetePat};
 
 /** A data structure to keep track of equalities between expressions.
@@ -128,6 +129,7 @@ pub struct EGraph<L, M> {
     memo: IndexMap<ENode<L>, Id>,
     classes: UnionFind<Id, EClass<L, M>>,
     unions_since_rebuild: usize,
+    #[cfg(feature = "rete")]
     pub rete: Rete<L>,
 }
 
@@ -149,6 +151,7 @@ impl<L : std::hash::Hash + Eq, M> Default for EGraph<L, M> {
             memo: IndexMap::default(),
             classes: UnionFind::default(),
             unions_since_rebuild: 0,
+            #[cfg(feature = "rete")]
             rete: Rete::default(),
         }
     }
@@ -329,7 +332,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             metadata: M::make(self, &enode),
             #[cfg(feature = "parent-pointers")]
             parents: IndexSet::new(),
-            #[cfg(feature = "parent-pointers")]
+            #[cfg(feature = "rete")]
             rpats: self.rete.search(
                 &enode.map_children(|id| self.classes.get(id).rpats.as_slice())),
         };
@@ -339,13 +342,12 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
 
         let (idx, old) = self.memo.insert_full(enode, next_id);
         #[cfg(feature = "parent-pointers")]
-        {
-            for &child in &self.memo.get_index(idx).unwrap().0.children {
-                self.classes.get_mut(child).parents.insert(idx);
-            }
-            for &pat in &self.classes.get(next_id).rpats {
-                self.rete.add_match(pat, next_id);
-            }
+        for &child in &self.memo.get_index(idx).unwrap().0.children {
+            self.classes.get_mut(child).parents.insert(idx);
+        }
+        #[cfg(feature = "rete")]
+        for &pat in &self.classes.get(next_id).rpats {
+            self.rete.add_match(pat, next_id);
         }
 
         assert_eq!(old, None);

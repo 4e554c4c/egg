@@ -3,8 +3,10 @@ use std::convert::TryFrom;
 use log::*;
 
 use crate::{
-    machine, Applier, EGraph, ENode, Id, Language, Metadata, RecExpr, Searcher, Subst, Var, RetePat
+    machine, Applier, EGraph, ENode, Id, Language, Metadata, RecExpr, Searcher, Subst, Var,
 };
+#[cfg(feature = "rete")]
+use crate::RetePat;
 
 use std::usize;
 
@@ -70,6 +72,7 @@ use std::usize;
 pub struct Pattern<L> {
     pub(crate) ast: PatternAst<L>,
     program: machine::Program<L>,
+    #[cfg(feature = "rete")]
     pub(crate) retepat: RetePat,
 }
 
@@ -84,7 +87,11 @@ pub(crate) enum PatternAst<L> {
 impl<L: Language> PatternAst<L> {
     pub(crate) fn compile(self) -> Pattern<L> {
         let program = machine::Program::compile_from_pat(&self);
-        Pattern { ast: self, program, retepat: usize::MAX}
+        Pattern {
+            ast: self, program,
+            #[cfg(feature = "rete")]
+            retepat: usize::MAX,
+        }
     }
 }
 

@@ -1,3 +1,4 @@
+#![cfg(feature = "rete")]
 use egg::{rewrite as rw, *};
 
 use log::trace;
@@ -140,8 +141,8 @@ pub fn rules() -> Vec<Rewrite> { vec![
     rw!("zero-mul"; "(* ?a 0)" => "0"),
     rw!("one-mul";  "(* ?a 1)" => "?a"),
 
-    rw!("add-zero"; "?a" => "(+ ?a 0)"),
-    rw!("mul-one";  "?a" => "(* ?a 1)"),
+    //rw!("add-zero"; "?a" => "(+ ?a 0)"),
+    //rw!("mul-one";  "?a" => "(* ?a 1)"),
 
     //rw!("cancel-sub"; "(- ?a ?a)" => "0"),
     //rw!("cancel-div"; "(/ ?a ?a)" => "1"),
@@ -149,7 +150,7 @@ pub fn rules() -> Vec<Rewrite> { vec![
     rw!("distribute"; "(* ?a (+ ?b ?c))"        => "(+ (* ?a ?b) (* ?a ?c))"),
     //rw!("factor"    ; "(+ (* ?a ?b) (* ?a ?c))" => "(* ?a (+ ?b ?c))"),
 
-    rw!("pow-intro"; "?a" => "(pow ?a 1)"),
+    //rw!("pow-intro"; "?a" => "(pow ?a 1)"),
     //rw!("pow-mul"; "(* (pow ?a ?b) (pow ?a ?c))" => "(pow ?a (+ ?b ?c))"),
     rw!("pow0"; "(pow ?x 0)" => "1"),
     rw!("pow1"; "(pow ?x 1)" => "?x"),
@@ -188,8 +189,9 @@ fn associate_adds() {
         .with_iter_limit(7)
         .with_node_limit(8_000)
         .with_scheduler(SimpleScheduler) // disable banning
+        .with_rules(rules.to_vec())
         .with_expr(&start_expr)
-        .run(rules)
+        .run()
         .egraph;
 
     // there are exactly 127 non-empty subsets of 7 things
@@ -213,7 +215,8 @@ fn annotations_correct() {
         .with_iter_limit(7)
         .with_node_limit(8_000)
         .with_scheduler(SimpleScheduler) // disable banning
-        .with_expr(&start_expr).run(&rules);
+        .with_rules(rules.to_vec())
+        .with_expr(&start_expr).run();
     
     let egraph = runner.egraph;
     let root = runner.roots[0];
@@ -252,9 +255,10 @@ macro_rules! check {
                 let runner = Runner::new()
                     .with_iter_limit($iters)
                     .with_node_limit($limit)
+                    .with_rules(rules.to_vec())
                     .with_expr(&start_expr)
                     .with_expr(&end_expr)
-                    .run(&rules);
+                    .run();
 
                 (runner.egraph, runner.roots[0], runner.stop_reason.unwrap())
             });
