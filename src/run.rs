@@ -142,7 +142,7 @@ println!(
 
 ```
 */
-pub struct Runner<L, M, IterData = ()> {
+pub struct Runner<'a, L, M, IterData = ()> {
     /// The [`EGraph`](struct.EGraph.html) used.
     pub egraph: EGraph<L, M>,
     /// Data accumulated over each [`Iteration`](struct.Iteration.html).
@@ -154,6 +154,8 @@ pub struct Runner<L, M, IterData = ()> {
     /// stopped yet.
     pub stop_reason: Option<StopReason>,
 
+    rules: &'a [Rewrite<L, M>],
+
     // limits
     iter_limit: usize,
     node_limit: usize,
@@ -163,7 +165,7 @@ pub struct Runner<L, M, IterData = ()> {
     scheduler: Box<dyn RewriteScheduler<L, M>>,
 }
 
-impl<L, M> Runner<L, M, ()>
+impl<'a, L, M> Runner<'a, L, M, ()>
 where
     L: Language,
     M: Metadata<L>,
@@ -175,7 +177,7 @@ where
     }
 }
 
-impl<L, M, IterData> Default for Runner<L, M, IterData>
+impl<'a, L, M, IterData> Default for Runner<'a, L, M, IterData>
 where
     L: Language,
     M: Metadata<L>,
@@ -189,6 +191,7 @@ where
             egraph: EGraph::default(),
             roots: vec![],
             iterations: vec![],
+            rules: &[],
             stop_reason: None,
 
             start_time: None,
@@ -248,7 +251,7 @@ pub struct Iteration<IterData> {
 
 type RunnerResult<T> = std::result::Result<T, StopReason>;
 
-impl<L, M, IterData> Runner<L, M, IterData>
+impl<'a, L, M, IterData> Runner<'a, L, M, IterData>
 where
     L: Language,
     M: Metadata<L>,
@@ -296,23 +299,27 @@ where
         Self { egraph, ..self }
     }
 
+    /// Replace the [`Rules`](struct.Rewrite.html) of this `Runner`.
+    pub fn with_rules(self, rules: &'a [Rewrite<L, M>]) -> Self {
+        Self { rules, ..self }
+    }
+
     /// Run this `Runner` until it stops.
     /// After this, the field
     /// [`stop_reason`](#structfield.stop_reason) is guaranteeed to be
     /// set.
-    pub fn run(mut self, rules: &[Rewrite<L, M>]) -> Self {
+    pub fn run(mut self) -> Self {
         // TODO check that we haven't
         loop {
-            if let Err(stop_reason) = self.run_one(rules) {
+            if let Err(stop_reason) = self.run_one() {
                 self.stop_reason = Some(stop_reason);
                 break;
             }
         }
-
         self
     }
 
-    fn run_one(&mut self, rules: &[Rewrite<L, M>]) -> RunnerResult<()> {
+    fn run_one(&mut self) -> RunnerResult<()> {
         assert!(self.stop_reason.is_none());
 
         info!("Iteration {}", self.iterations.len());
@@ -328,7 +335,7 @@ where
         let search_time = Instant::now();
 
         let mut matches = Vec::new();
-        for rule in rules {
+        for rule in self.rules {
             let ms = self.scheduler.search_rewrite(i, &self.egraph, rule);
             matches.push(ms);
             self.check_limits()?;
@@ -340,7 +347,7 @@ where
         let apply_time = Instant::now();
 
         let mut applied = IndexMap::new();
-        for (rw, ms) in rules.iter().zip(matches) {
+        for (rw, ms) in self.rules.iter().zip(matches) {
             let total_matches: usize = ms.iter().map(|m| m.substs.len()).sum();
             if total_matches == 0 {
                 continue;

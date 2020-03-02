@@ -4,6 +4,7 @@ use indexmap::{IndexMap, IndexSet};
 use log::*;
 
 use crate::{unionfind::UnionFind, Dot, EClass, ENode, Id, Language, Metadata, RecExpr};
+use crate::rete::Rete;
 
 /** A data structure to keep track of equalities between expressions.
 
@@ -122,11 +123,12 @@ same eclass.
 [extract]: struct.Extractor.html
 [sound]: https://itinerarium.github.io/phoneme-synthesis/?w=/'igraf/
 **/
-#[derive(Clone)]
+//#[derive(Clone)]
 pub struct EGraph<L, M> {
     memo: IndexMap<ENode<L>, Id>,
     classes: UnionFind<Id, EClass<L, M>>,
     unions_since_rebuild: usize,
+    rete: Rete<L>,
 }
 
 // manual debug impl to avoid L: Language bound on EGraph defn
@@ -140,13 +142,14 @@ impl<L: Language, M: Debug> Debug for EGraph<L, M> {
     }
 }
 
-impl<L, M> Default for EGraph<L, M> {
+impl<L : std::hash::Hash + Eq, M> Default for EGraph<L, M> {
     /// Returns an empty egraph.
     fn default() -> EGraph<L, M> {
         EGraph {
             memo: IndexMap::default(),
             classes: UnionFind::default(),
             unions_since_rebuild: 0,
+            rete: Rete::default(),
         }
     }
 }
