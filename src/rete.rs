@@ -9,7 +9,8 @@ use smallvec::SmallVec;
 /// The type of a pattern in the [`Rete`](struct.Rete.html) graph.
 pub type RetePat = usize;
 
-enum RChild {
+// TODO make non public
+pub enum RChild {
     Ref(RetePat),
     Var,
 }
@@ -17,8 +18,9 @@ enum RChild {
 //#[derive(Default)]
 pub struct Rete<L> {
     // TODO update Ids
-    table: Vec<(ENode<L, RChild>, Vec<Id>)>,
-    // use smallvec or no?
+    // TODO switch to an `Indexmap`? or similar? Want efficient updating of IDs
+    pub table: Vec<(ENode<L, RChild>, Vec<Id>)>,
+    // XXX use smallvec or no?
     map: HashMap<L, SmallVec<[RetePat; 2]>,>,
 }
 
@@ -34,6 +36,8 @@ impl<L : std::hash::Hash + Eq> Default for Rete<L> {
 impl<L : Language> Rete<L> {
     /// Compile `pattern` to several rete patterns and return the
     /// representative `RetePat`
+    // TODO allow for expressions containing one variable
+    // TODO delete duplicate patterns
     pub(crate) fn add_pattern(&mut self, pattern: &PatternAst<L>) -> RetePat {
         let expr = match pattern {
             PatternAst::ENode(expr) => expr,

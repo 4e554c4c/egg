@@ -180,6 +180,36 @@ impl<'a, L: Language + Display, M> Display for Dot<'a, L, M> {
             writeln!(f, "  }}")?;
         }
 
+        #[cfg(feature = "rete")]
+        {
+            use crate::rete::RChild;
+            writeln!(f, "  subgraph cluster_rete {{")?;
+            writeln!(f, "    label=\"Rete\"")?;
+            //writeln!(f, "    pos=\"-10,-10!\"")?;
+            writeln!(f, "    var[shape=square,style=rounded]")?;
+            for (i, (node, classes)) in self.egraph.rete.table.iter().enumerate() {
+                writeln!(f, "    .{}[label = \"{}\",shape=square,style=rounded]", i, node.op)?;
+                for var in node.children.iter() {
+                    match var {
+                        RChild::Var      => writeln!(f, "    .{} -> var", i)?,
+                        RChild::Ref(pat) => writeln!(f, "    .{} -> .{}", i,pat)?,
+                    }
+                }
+                // XXX none of the transformations should be necessary
+                use itertools::Itertools;
+                for class in classes.iter()
+                        // canonicalize
+                        .map(|&class| self.egraph.find(class))
+                        // nub
+                        .dedup() {
+                    let class = self.egraph.find(class);
+                    writeln!(f, "    {}.0 -> .{} [ltail = cluster_{0},constraint=false]", class, i)?;
+                }
+            }
+            writeln!(f, "  }}")?;
+        }
+
+
         for class in self.egraph.classes() {
             for (i_in_class, node) in class.iter().enumerate() {
                 for (arg_i, child) in node.children.iter().enumerate() {

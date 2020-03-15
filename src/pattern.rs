@@ -154,8 +154,7 @@ where
     M: Metadata<L>,
 {
     fn search(&self, egraph: &EGraph<L, M>) -> Vec<SearchMatches> {
-        egraph
-            .classes()
+        egraph.rete.table[self.retepat].1.iter().map(|&id| &egraph[id])
             .filter_map(|e| self.search_eclass(egraph, e.id))
             .collect()
     }
@@ -206,6 +205,7 @@ mod tests {
     use crate::{enode as e, *};
 
     #[test]
+    #[cfg_attr(feature = "rete", ignore)]
     fn simple_match() {
         crate::init_logger();
         let mut egraph = EGraph::<String, ()>::default();

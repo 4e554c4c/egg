@@ -222,6 +222,7 @@ fn annotations_correct() {
     let root = runner.roots[0];
     let pattern = Pattern::from(end_expr);
     let matches = pattern.search_eclass(&egraph, root);
+    egraph.dot().to_svg("target/heck.svg").unwrap();
 
     if matches.is_none() {
         println!("start: {}", start_expr.pretty(40));
@@ -236,6 +237,23 @@ fn annotations_correct() {
     //assert_eq!(egraph.number_of_classes(), 127);
 }
 
+#[test]
+fn rete_dot() {
+    //let rules : &[Rewrite] = &[
+    //    rw!("mul-commutes"; "(* ?x ?y)" => "(* ?y ?x)"),
+    //    rw!("mul-two";      "(* ?x 2)" => "(<< ?x 1)"),
+    //];
+
+    let runner = Runner::new()
+        //.with_iter_limit($iters)
+        //.with_node_limit($limit)
+        .with_rules(rules().to_vec())
+        //.with_expr(&start_expr)
+        .with_expr(&"(/ (* 2 a) 2)".parse().unwrap())
+        .run();
+
+    runner.egraph.dot().to_png("target/rete.png").unwrap();
+}
 
 macro_rules! check {
     (

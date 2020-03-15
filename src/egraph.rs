@@ -598,6 +598,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
                 if same_ids.len() > 1 {
                     let id0 = same_ids[0];
                     let mut did_union = false;
+                    // want to combine RETE attribute
                     for id in same_ids[1..].iter() {
                         did_union |= self.classes.union(id0, *id).unwrap().1;
                     }

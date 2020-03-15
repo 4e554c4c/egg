@@ -402,6 +402,7 @@ mod tests {
     use crate::{enode as e, *};
 
     #[test]
+    #[cfg_attr(feature = "rete", ignore)]
     fn conditional_rewrite() {
         crate::init_logger();
         let mut egraph = EGraph::<String, ()>::default();
@@ -436,6 +437,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(feature = "rete", ignore)]
     fn fn_rewrite() {
         crate::init_logger();
         let mut egraph = EGraph::<String, ()>::default();
