@@ -5,11 +5,12 @@ use crate::{
 use std::vec::Vec;
 use std::collections::HashMap;
 use smallvec::SmallVec;
+use indexmap::{IndexMap, IndexSet};
 
 /// The type of a pattern in the [`Rete`](struct.Rete.html) graph.
 pub type RetePat = usize;
 
-pub type ReteMatch = SmallVec<Id>;
+pub type ReteMatch = SmallVec<[Id; 2]>;
 
 pub type ReteMatches = IndexMap<RetePat, Vec<ReteMatch>>;
 

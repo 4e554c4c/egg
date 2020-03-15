@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::iter::ExactSizeIterator;
+use indexmap::{IndexMap, IndexSet};
 
 use crate::{
     unionfind::{Key, UnionFind, Value},
@@ -7,7 +8,7 @@ use crate::{
 };
 
 #[cfg(feature = "parent-pointers")]
-use crate::RetePat;
+use crate::{ReteMatches};
 
 /** Arbitrary data associated with an [`EClass`].
 
@@ -177,7 +178,7 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
             nodes: extend_owned(to.nodes, from.nodes),
             metadata: to.metadata.merge(&from.metadata),
             #[cfg(feature = "parent-pointers")]
-	    rpats: extend_owned(to.rpats, from.rpats),
+	    rmatches: IndexMap::default(),
             #[cfg(feature = "parent-pointers")]
             parents: {
                 let mut parents = to.parents;

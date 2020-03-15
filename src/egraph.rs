@@ -333,8 +333,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             #[cfg(feature = "parent-pointers")]
             parents: IndexSet::new(),
             #[cfg(feature = "rete")]
-            rpats: self.rete.search(
-                &enode.map_children(|id| self.classes.get(id).rpats.as_slice())),
+            rmatches: IndexMap::default(),
         };
         M::modify(&mut class);
         let next_id = self.classes.make_set(class);
@@ -345,10 +344,11 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
         for &child in &self.memo.get_index(idx).unwrap().0.children {
             self.classes.get_mut(child).parents.insert(idx);
         }
-        #[cfg(feature = "rete")]
-        for &pat in &self.classes.get(next_id).rpats {
-            self.rete.add_match(pat, next_id);
-        }
+	// todo: add new matches
+        //#[cfg(feature = "rete")]
+        //for &pat in &self.classes.get(next_id).rpats {
+            //self.rete.add_match(pat, next_id);
+        //}
 
         assert_eq!(old, None);
         next_id
