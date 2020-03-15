@@ -1,5 +1,5 @@
 use crate::{
-    machine, Applier, ENode, Id, Language, Metadata, RecExpr, Searcher, Subst, Var, PatternAst
+    machine, Applier, ENode, Id, Language, Metadata, RecExpr, Searcher, Subst, Var, PatternAst, SearchMatches
 };
 
 use std::vec::Vec;
@@ -8,6 +8,10 @@ use smallvec::SmallVec;
 
 /// The type of a pattern in the [`Rete`](struct.Rete.html) graph.
 pub type RetePat = usize;
+
+pub type ReteMatch = SmallVec<Id>;
+
+pub type ReteMatches = IndexMap<RetePat, Vec<ReteMatch>>;
 
 // TODO make non public
 pub enum RChild {

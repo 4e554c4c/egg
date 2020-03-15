@@ -134,7 +134,7 @@ pub struct EClass<L, M> {
     pub metadata: M,
 
     #[cfg(feature = "parent-pointers")]
-    pub rpats: Vec<RetePat>,
+    pub rmatches: ReteMatches,
     #[cfg(feature = "parent-pointers")]
     #[doc(hidden)]
     pub(crate) parents: indexmap::IndexSet<usize>,
