@@ -130,7 +130,7 @@ pub struct EGraph<L, M> {
     classes: UnionFind<Id, EClass<L, M>>,
     unions_since_rebuild: usize,
     #[cfg(feature = "rete")]
-    pub rete: Rete<L>,
+    pub rete: Rete<L, M>,
 }
 
 // manual debug impl to avoid L: Language bound on EGraph defn
@@ -335,7 +335,8 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             #[cfg(feature = "rete")]
             rmatches: IndexMap::default(),
         };
-        M::modify(&mut class);
+
+	M::modify(&mut class);
         let next_id = self.classes.make_set(class);
         trace!("Added  {:4}: {:?}", next_id, enode);
 
@@ -344,6 +345,9 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
         for &child in &self.memo.get_index(idx).unwrap().0.children {
             self.classes.get_mut(child).parents.insert(idx);
         }
+
+
+	
 	// todo: add new matches
         //#[cfg(feature = "rete")]
         //for &pat in &self.classes.get(next_id).rpats {

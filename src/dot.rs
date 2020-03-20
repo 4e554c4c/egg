@@ -196,6 +196,7 @@ impl<'a, L: Language + Display, M> Display for Dot<'a, L, M> {
                     }
                 }
                 // XXX none of the transformations should be necessary
+		/*
                 use itertools::Itertools;
                 for class in classes.iter()
                         // canonicalize
@@ -204,7 +205,7 @@ impl<'a, L: Language + Display, M> Display for Dot<'a, L, M> {
                         .dedup() {
                     let class = self.egraph.find(class);
                     writeln!(f, "    {}.0 -> .{} [ltail = cluster_{0},constraint=false]", class, i)?;
-                }
+                }*/
             }
             writeln!(f, "  }}")?;
         }

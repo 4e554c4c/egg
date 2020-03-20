@@ -154,7 +154,8 @@ where
     M: Metadata<L>,
 {
     fn search(&self, egraph: &EGraph<L, M>) -> Vec<SearchMatches> {
-        egraph.rete.table[self.retepat].1.iter().map(|&id| &egraph[id])
+	egraph
+            .classes()
             .filter_map(|e| self.search_eclass(egraph, e.id))
             .collect()
     }

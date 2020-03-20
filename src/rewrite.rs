@@ -26,7 +26,7 @@ pub struct Rewrite<L, M> {
     long_name: String,
     //searcher: Rc<dyn Searcher<L, M>>,
     pub searcher: Rc<Pattern<L>>,
-    applier: Rc<dyn Applier<L, M>>,
+    pub applier: Rc<dyn Applier<L, M>>,
 }
 
 impl<L: Language, M: Metadata<L>> Rewrite<L, M> {
