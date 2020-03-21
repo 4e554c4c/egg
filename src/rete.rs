@@ -100,7 +100,8 @@ impl<L : Language> Rete<L> {
 
     pub fn eclass_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: &EClass<L, M>, rpat: RetePat) -> Vec<Subst> {
 	let mut res: Vec<Subst> = Vec::default();
-	let rmatches: &Vec<ReteMatch> = class.rmatches.get(&rpat).unwrap();
+	let empty = Vec::new();
+	let rmatches: &Vec<ReteMatch> = class.rmatches.get(&rpat).unwrap_or(&empty);
 	for rmatch in rmatches {
 	    res.append(&mut self.extract_from_match(classes, rmatch, rpat));
 	}
