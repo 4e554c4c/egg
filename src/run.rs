@@ -340,14 +340,8 @@ where
 
         let search_time = Instant::now();
 
-        let mut matches = Vec::new();
+        let mut matches = self.egraph.rete_matches(self.rules.len());
 	
-        for rule in &self.rules {
-            let ms = self.scheduler.search_rewrite(i, &self.egraph, &rule);
-            matches.push(ms);
-            self.check_limits()?;
-        }
-
         let search_time = search_time.elapsed().as_secs_f64();
         info!("Search time: {}", search_time);
 

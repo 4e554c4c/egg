@@ -3,7 +3,7 @@ use std::fmt::{self, Debug};
 use indexmap::{IndexMap, IndexSet};
 use log::*;
 
-use crate::{unionfind::UnionFind, Dot, EClass, ENode, Id, Language, Metadata, RecExpr, Subst};
+use crate::{unionfind::UnionFind, Dot, EClass, ENode, Id, Language, Metadata, RecExpr, Subst, SearchMatches};
 #[cfg(feature = "rete")]
 use crate::rete::{Rete,RetePat,RuleIndex};
 
@@ -181,11 +181,20 @@ impl<L: Language, M> EGraph<L, M> {
         self.memo.is_empty()
     }
 
-    pub fn rete_matches(&self) -> Vec<(Vec<RuleIndex>, Vec<Subst>)> {
+    pub fn rete_matches(&self, rulelen: usize) -> Vec<Vec<SearchMatches>> {
 	let mut matches = Vec::new();
+	for i in 0..rulelen {
+	    matches.push(vec![]);
+	}
 
 	for eclass in self.classes() {
-	    matches.append(&mut self.rete.extract_matches(&self.classes, eclass));
+	    let rulematches = self.rete.extract_matches(&self.classes, eclass);
+	    for (ruleindexes, substs) in rulematches {
+		for rulei in ruleindexes {
+		    matches[rulei].push(SearchMatches{eclass: eclass.id,
+						      substs: substs.clone()});
+		}
+	    }
 	}
 	matches
     }
