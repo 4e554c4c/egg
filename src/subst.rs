@@ -69,9 +69,13 @@ impl Subst {
     }
 
     pub(crate) fn from_item(var: Var, id: Id) -> Subst {
-	let subst = Subst::default();
+	let mut subst = Subst::default();
 	subst.insert(var, id);
 	subst
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&Var, &Id)> {
+        self.vec.iter().map(|pair| (&pair.0, &pair.1))
     }
 }
 
