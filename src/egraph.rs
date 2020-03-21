@@ -157,7 +157,7 @@ impl<L : std::hash::Hash + Eq, M> Default for EGraph<L, M> {
     }
 }
 
-impl<L, M> EGraph<L, M> {
+impl<L: Language, M> EGraph<L, M> {
     /// Returns an iterator over the eclasses in the egraph.
     pub fn classes(&self) -> impl Iterator<Item = &EClass<L, M>> {
         self.classes.values()
@@ -180,16 +180,16 @@ impl<L, M> EGraph<L, M> {
     pub fn is_empty(&self) -> bool {
         self.memo.is_empty()
     }
-/*
-    pub fn rete_matches(&self) -> Vec<Vec<(Vec<RuleIndex>, Vec<Subst>)>> {
+
+    pub fn rete_matches(&self) -> Vec<(Vec<RuleIndex>, Vec<Subst>)> {
 	let mut matches = Vec::new();
 
 	for eclass in self.classes() {
-	    matches.push(self.rete.extract_matches(&eclass.rmatches));
+	    matches.append(&mut self.rete.extract_matches(&self.classes, eclass));
 	}
 	matches
     }
-*/
+
     /// Returns the number of enodes in the `EGraph`.
     ///
     /// Actually returns the size of the hashcons index.

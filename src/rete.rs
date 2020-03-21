@@ -90,17 +90,17 @@ impl<L : Language> Rete<L> {
 	matches
     }
 
-    pub fn extract_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: Id) -> Vec<(Vec<RuleIndex>, Vec<Subst>)> {
+    pub fn extract_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: &EClass<L, M>) -> Vec<(Vec<RuleIndex>, Vec<Subst>)> {
 	let mut res: Vec<_> = Vec::default();
-	for (rpat, rms) in &classes.get(class).rmatches {
+	for (rpat, rms) in &class.rmatches {
 	    res.push((self.table[*rpat].1.clone(), self.eclass_matches(classes, class, *rpat)));
 	}
 	res
     }
 
-    pub fn eclass_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: Id, rpat: RetePat) -> Vec<Subst> {
+    pub fn eclass_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: &EClass<L, M>, rpat: RetePat) -> Vec<Subst> {
 	let mut res: Vec<Subst> = Vec::default();
-	let rmatches: &Vec<ReteMatch> = classes.get(class).rmatches.get(&rpat).unwrap();
+	let rmatches: &Vec<ReteMatch> = class.rmatches.get(&rpat).unwrap();
 	for rmatch in rmatches {
 	    res.append(&mut self.extract_from_match(classes, rmatch, rpat));
 	}
@@ -115,7 +115,7 @@ impl<L : Language> Rete<L> {
 	    .map(|(pa, ea)|
 		 match pa {
 		     RChild::Var(v) => vec![Subst::from_item(v.clone(), *ea)],
-		     RChild::Ref(subpat) => self.eclass_matches(classes, *ea, *subpat),
+		     RChild::Ref(subpat) => self.eclass_matches(classes, classes.get(*ea), *subpat),
 		 }).collect();
 
 	'outer: for ms in arg_substs.iter().multi_cartesian_product() {
