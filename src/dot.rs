@@ -191,7 +191,7 @@ impl<'a, L: Language + Display, M> Display for Dot<'a, L, M> {
                 writeln!(f, "    .{}[label = \"{}\",shape=square,style=rounded]", i, node.op)?;
                 for var in node.children.iter() {
                     match var {
-                        RChild::Var      => writeln!(f, "    .{} -> var", i)?,
+                        RChild::Var(v)      => writeln!(f, "    .{} -> var", i)?,
                         RChild::Ref(pat) => writeln!(f, "    .{} -> .{}", i,pat)?,
                     }
                 }

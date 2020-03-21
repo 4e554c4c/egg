@@ -341,6 +341,7 @@ where
         let search_time = Instant::now();
 
         let mut matches = Vec::new();
+	
         for rule in &self.rules {
             let ms = self.scheduler.search_rewrite(i, &self.egraph, &rule);
             matches.push(ms);

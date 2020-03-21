@@ -67,6 +67,12 @@ impl Subst {
             .iter()
             .find_map(|(v, id)| if v == var { Some(id) } else { None })
     }
+
+    pub(crate) fn from_item(var: Var, id: Id) -> Subst {
+	let subst = Subst::default();
+	subst.insert(var, id);
+	subst
+    }
 }
 
 impl std::ops::Index<&Var> for Subst {

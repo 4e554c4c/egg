@@ -1,5 +1,5 @@
 use crate::{
-    machine, Applier, ENode, Id, Language, Metadata, RecExpr, Searcher, Subst, Var, PatternAst, SearchMatches
+    machine, Applier, ENode, Id, Language, Metadata, RecExpr, Searcher, Subst, Var, PatternAst, SearchMatches, unionfind::UnionFind, EClass,
 };
 
 use std::rc::Rc;
@@ -7,6 +7,7 @@ use std::vec::Vec;
 use std::collections::HashMap;
 use smallvec::SmallVec;
 use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 
 /// The type of a pattern in the [`Rete`](struct.Rete.html) graph.
 pub type RetePat = usize;
@@ -28,7 +29,7 @@ pub fn merge_retematches(to: &mut ReteMatches, from: &mut ReteMatches) {
 // TODO make non public
 pub enum RChild {
     Ref(RetePat),
-    Var,
+    Var(Var),
 }
 
 //#[derive(Default)]
@@ -60,7 +61,7 @@ impl<L : Language> Rete<L> {
 
         let node = expr.map_children(|pattern|
             match pattern {
-                PatternAst::Var(_) => RChild::Var,
+                PatternAst::Var(v) => RChild::Var(v),
                 PatternAst::ENode(_) => RChild::Ref(self.add_pattern(&pattern, vec![]))
             });
 
@@ -87,6 +88,50 @@ impl<L : Language> Rete<L> {
 	}
 
 	matches
+    }
+
+    pub fn extract_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: Id) -> Vec<(Vec<RuleIndex>, Vec<Subst>)> {
+	let res: Vec<_> = Vec::default();
+	for (rpat, rms) in classes.get(class).rmatches {
+	    res.push((self.table[rpat].1, self.eclass_matches(classes, class, rpat)));
+	}
+	res
+    }
+
+    pub fn eclass_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: Id, rpat: RetePat) -> Vec<Subst> {
+	let res: Vec<Subst> = Vec::default();
+	let rmatches: &Vec<ReteMatch> = classes.get(class).rmatches.get(&rpat).unwrap();
+	for rmatch in rmatches {
+	    res.append(&mut self.extract_from_match(classes, rmatch, rpat));
+	}
+	res
+    }
+
+    pub fn extract_from_match<M>(&self, classes: &UnionFind<Id, EClass<L, M>>,rmatch: &ReteMatch, rpat: RetePat) -> Vec<Subst> {
+	let lhs = self.table[rpat].0;
+	let mut new_substs = Vec::new();
+
+	let arg_substs: Vec<_> = self.table[rpat].0.children.iter().zip(rmatch)
+	    .map(|(pa, ea)|
+		 match pa {
+		     RChild::Var(v) => vec![Subst::from_item(*v, *ea)],
+		     RChild::Ref(subpat) => self.eclass_matches(classes, *ea, *subpat),
+		 }).collect();
+
+	'outer: for ms in arg_substs.iter().multi_cartesian_product() {
+	    let mut combined = ms[0].clone();
+	    for m in &ms[1..] {
+                for (w, id) in *m.iter() {
+                    if let Some(old_id) = combined.insert(w.clone(), id.clone()) {
+                        if old_id != *id {
+                            continue 'outer;
+                        }
+                    }
+                }
+            }
+	    new_substs.push(combined);
+	}
+	new_substs
     }
 }
 

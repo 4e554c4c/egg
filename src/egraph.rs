@@ -3,9 +3,9 @@ use std::fmt::{self, Debug};
 use indexmap::{IndexMap, IndexSet};
 use log::*;
 
-use crate::{unionfind::UnionFind, Dot, EClass, ENode, Id, Language, Metadata, RecExpr};
+use crate::{unionfind::UnionFind, Dot, EClass, ENode, Id, Language, Metadata, RecExpr, Subst};
 #[cfg(feature = "rete")]
-use crate::rete::{Rete,RetePat};
+use crate::rete::{Rete,RetePat,RuleIndex};
 
 /** A data structure to keep track of equalities between expressions.
 
@@ -180,7 +180,16 @@ impl<L, M> EGraph<L, M> {
     pub fn is_empty(&self) -> bool {
         self.memo.is_empty()
     }
+/*
+    pub fn rete_matches(&self) -> Vec<Vec<(Vec<RuleIndex>, Vec<Subst>)>> {
+	let mut matches = Vec::new();
 
+	for eclass in self.classes() {
+	    matches.push(self.rete.extract_matches(&eclass.rmatches));
+	}
+	matches
+    }
+*/
     /// Returns the number of enodes in the `EGraph`.
     ///
     /// Actually returns the size of the hashcons index.
