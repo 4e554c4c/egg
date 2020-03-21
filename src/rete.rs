@@ -11,10 +11,11 @@ use indexmap::{IndexMap, IndexSet};
 /// The type of a pattern in the [`Rete`](struct.Rete.html) graph.
 pub type RetePat = usize;
 
+pub type RuleIndex = usize;
+
 pub type ReteMatch = SmallVec<[Id; 2]>;
 
 pub type ReteMatches = IndexMap<RetePat, Vec<ReteMatch>>;
-
 
 pub fn merge_retematches(to: &mut ReteMatches, from: &mut ReteMatches) {
     for (k, mut v) in from {
@@ -31,14 +32,14 @@ pub enum RChild {
 }
 
 //#[derive(Default)]
-pub struct Rete<L, M> {
-    pub table: Vec<(ENode<L, RChild>, Vec<Rc<dyn Applier<L, M>>>)>,
+pub struct Rete<L> {
+    pub table: Vec<(ENode<L, RChild>, Vec<RuleIndex>)>,
     // XXX use smallvec or no?
     map: HashMap<(L, usize), SmallVec<[RetePat; 2]>,>,
 }
 
-impl<L : std::hash::Hash + Eq, M> Default for Rete<L, M> {
-    fn default() -> Rete<L, M> {
+impl<L : std::hash::Hash + Eq> Default for Rete<L> {
+    fn default() -> Rete<L> {
         Rete {
             table: Vec::new(),
             map: HashMap::new(),
@@ -46,12 +47,12 @@ impl<L : std::hash::Hash + Eq, M> Default for Rete<L, M> {
     }
 }
 
-impl<L : Language, M> Rete<L, M> {
+impl<L : Language> Rete<L> {
     /// Compile `pattern` to several rete patterns and return the
     /// representative `RetePat`
     // TODO allow for expressions containing one variable
     // TODO delete duplicate patterns
-    pub(crate) fn add_pattern(&mut self, pattern: &PatternAst<L>, appliers: Vec<Rc<dyn Applier<L, M>>>) -> RetePat {
+    pub(crate) fn add_pattern(&mut self, pattern: &PatternAst<L>, appliers: Vec<RuleIndex>) -> RetePat {
         let expr = match pattern {
             PatternAst::ENode(expr) => expr,
             _ => panic!("Cannot create a rete pattern for a lone variable"),

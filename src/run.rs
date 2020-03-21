@@ -302,8 +302,9 @@ where
 
     /// Replace the [`Rules`](struct.Rewrite.html) of this `Runner`.
     pub fn with_rules(mut self, mut rules: Vec<Rewrite<L, M>>) -> Self {
-	for rewrite in &mut rules {
-	    let retepat = self.egraph.rete.add_pattern(&rewrite.searcher.ast, vec![Rc::clone(&rewrite.applier)]);
+	for iter in 0..rules.len() {
+	    let rewrite = &mut rules[iter];
+	    let retepat = self.egraph.rete.add_pattern(&rewrite.searcher.ast, vec![iter]);
 	    Rc::make_mut(&mut rewrite.searcher).retepat = retepat;
 	}
         Self { rules, ..self }

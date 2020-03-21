@@ -130,7 +130,7 @@ pub struct EGraph<L, M> {
     classes: UnionFind<Id, EClass<L, M>>,
     unions_since_rebuild: usize,
     #[cfg(feature = "rete")]
-    pub rete: Rete<L, M>,
+    pub rete: Rete<L>,
 }
 
 // manual debug impl to avoid L: Language bound on EGraph defn
