@@ -15,6 +15,15 @@ pub type ReteMatch = SmallVec<[Id; 2]>;
 
 pub type ReteMatches = IndexMap<RetePat, Vec<ReteMatch>>;
 
+
+pub fn merge_retematches(to: &mut ReteMatches, from: &mut ReteMatches) {
+    for (k, mut v) in from {
+	to.entry(*k)
+	    .and_modify(|vec| vec.append(&mut v))
+	    .or_insert(v.to_vec());
+    }
+}
+
 // TODO make non public
 pub enum RChild {
     Ref(RetePat),
@@ -25,7 +34,7 @@ pub enum RChild {
 pub struct Rete<L, M> {
     pub table: Vec<(ENode<L, RChild>, Vec<Rc<dyn Applier<L, M>>>)>,
     // XXX use smallvec or no?
-    map: HashMap<L, SmallVec<[RetePat; 2]>,>,
+    map: HashMap<(L, usize), SmallVec<[RetePat; 2]>,>,
 }
 
 impl<L : std::hash::Hash + Eq, M> Default for Rete<L, M> {
@@ -57,28 +66,28 @@ impl<L : Language, M> Rete<L, M> {
         let op = node.op.clone();
         let idx = self.table.len();
         self.table.push((node, appliers));
-        self.map.entry(op)
+        self.map.entry((op, expr.children.len()))
             .and_modify(|vec| vec.push(idx))
             .or_insert(SmallVec::from_elem(idx,1));
         idx
     }
 
     /// Returns all `RetePat` which match the given query
-    pub fn search(&self, node: &ENode<L, &[RetePat]>) -> Vec<RetePat> {
-        self.map.get(&node.op).map_or(&[] as &[usize], |vec| vec.as_slice())
-            .iter().filter(move |&&elem| {
-                let sets = &node.children;
-                let current = &self.table[elem].0.children;
-                if current.len() != sets.len() {
-                    false
-                } else {
-                    current.iter().zip(sets.iter())
-                        .all(|(item, set)| match item {
-                            RChild::Var => true,
-                            RChild::Ref(pat) => set.contains(pat),
-                        })
-                }
-            }).copied().collect()
+    pub fn make_node_matches(&self, node: &ENode<L>) ->  ReteMatches {
+	let mut matches: ReteMatches = IndexMap::default();
+	
+	
+        let retepats = self.map.get(&(node.op.clone(), node.children.len())).map_or(&[] as &[usize], |vec| vec.as_slice());
+
+	for retepat in retepats {
+	    matches.entry(*retepat)
+		.and_modify(|vec| vec.push(node.children.clone()))
+		.or_insert(vec![node.children.clone()]);
+	}
+
+	matches
     }
 }
+
+
 

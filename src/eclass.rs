@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[cfg(feature = "parent-pointers")]
-use crate::{ReteMatches};
+use crate::{ReteMatches, merge_retematches};
 
 /** Arbitrary data associated with an [`EClass`].
 
@@ -170,15 +170,17 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
     type Error = std::convert::Infallible;
     fn merge<K: Key>(
         _unionfind: &mut UnionFind<K, Self>,
-        to: Self,
-        from: Self,
+        mut to: Self,
+        mut from: Self,
     ) -> Result<Self, Self::Error> {
+	merge_retematches(&mut to.rmatches, &mut from.rmatches);
+	
         let mut eclass = EClass {
             id: to.id,
             nodes: extend_owned(to.nodes, from.nodes),
             metadata: to.metadata.merge(&from.metadata),
             #[cfg(feature = "parent-pointers")]
-	    rmatches: IndexMap::default(),
+	    rmatches: to.rmatches,
             #[cfg(feature = "parent-pointers")]
             parents: {
                 let mut parents = to.parents;

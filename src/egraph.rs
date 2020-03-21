@@ -333,7 +333,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             #[cfg(feature = "parent-pointers")]
             parents: IndexSet::new(),
             #[cfg(feature = "rete")]
-            rmatches: IndexMap::default(),
+            rmatches: self.rete.make_node_matches(&enode),
         };
 
 	M::modify(&mut class);

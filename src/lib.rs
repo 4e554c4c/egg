@@ -86,7 +86,7 @@ pub use rewrite::{Applier, Condition, ConditionEqual, ConditionalApplier, Rewrit
 pub use run::*;
 pub use subst::{Subst, Var};
 #[cfg(feature = "rete")]
-pub use rete::{RetePat, ReteMatches};
+pub use rete::{RetePat, ReteMatches, merge_retematches};
 
 #[cfg(test)]
 fn init_logger() {
