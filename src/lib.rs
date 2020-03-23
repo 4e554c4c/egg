@@ -36,7 +36,7 @@ define_language! {
     }
 }
 
-let rules: &[Rewrite<SimpleLanguage, ()>] = &[
+let rules: Vec<Rewrite<SimpleLanguage, ()>> = vec![
     rw!("commute-add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
     rw!("commute-mul"; "(* ?a ?b)" => "(* ?b ?a)"),
 
@@ -46,7 +46,7 @@ let rules: &[Rewrite<SimpleLanguage, ()>] = &[
 ];
 
 let start = "(+ 0 (* 1 foo))".parse().unwrap();
-let runner = Runner::new().with_expr(&start).run(&rules);
+let runner = Runner::new().with_expr(&start).with_rules(rules).run();
 println!(
     "Stopped after {} iterations, reason: {:?}",
     runner.iterations.len(),

@@ -67,7 +67,7 @@ impl Metadata<EasyMath> for Meta {
     }
 }
 
-let rules: &[Rewrite<EasyMath, Meta>] = &[
+let rules: Vec<Rewrite<EasyMath, Meta>> = vec![
     rw!("commute-add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
     rw!("commute-mul"; "(* ?a ?b)" => "(* ?b ?a)"),
 
@@ -77,7 +77,7 @@ let rules: &[Rewrite<EasyMath, Meta>] = &[
 ];
 
 let expr = "(+ 0 (* (+ 4 -3) foo))".parse().unwrap();
-let mut runner = Runner::new().with_expr(&expr).run(&rules);
+let mut runner = Runner::new().with_expr(&expr).with_rules(rules).run();
 let just_foo = runner.egraph.add(enode!(Variable("foo".into())));
 assert_eq!(runner.egraph.find(runner.roots[0]), runner.egraph.find(just_foo));
 ```

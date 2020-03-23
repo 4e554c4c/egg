@@ -18,7 +18,7 @@ define_language! {
     }
 }
 
-let rules: &[Rewrite<SimpleLanguage, ()>] = &[
+let rules: Vec<Rewrite<SimpleLanguage, ()>> = vec![
     rewrite!("commute-add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
     rewrite!("commute-mul"; "(* ?a ?b)" => "(* ?b ?a)"),
 
@@ -28,7 +28,7 @@ let rules: &[Rewrite<SimpleLanguage, ()>] = &[
 ];
 
 let start = "(+ 0 (* 1 10))".parse().unwrap();
-let runner = Runner::new().with_expr(&start).run(&rules);
+let runner = Runner::new().with_expr(&start).run(rules);
 let (egraph, root) = (runner.egraph, runner.roots[0]);
 
 let mut extractor = Extractor::new(&egraph, AstSize);

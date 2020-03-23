@@ -193,9 +193,11 @@ impl<L: Language, M> EGraph<L, M> {
 		for rulei in ruleindexes {
 		    matches[rulei].push(SearchMatches{eclass: eclass.id,
 						      substs: substs.clone()});
+		    print!("added one\n");
 		}
 	    }
 	}
+	
 	matches
     }
 

@@ -24,14 +24,14 @@ visualization.
 ```
 use egg::{*, rewrite as rw};
 
-let rules = &[
+let rules = vec![
     rw!("mul-commutes"; "(* ?x ?y)" => "(* ?y ?x)"),
     rw!("mul-two";      "(* ?x 2)" => "(<< ?x 1)"),
 ];
 
 let mut egraph = EGraph::<String, ()>::default();
 egraph.add_expr(&"(/ (* 2 a) 2)".parse().unwrap());
-let egraph = Runner::new().with_egraph(egraph).run(rules).egraph;
+let egraph = Runner::new().with_egraph(egraph).with_rules(rules).run().egraph;
 
 // Dot implements std::fmt::Display
 println!("My egraph dot file: {}", egraph.dot());

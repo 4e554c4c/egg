@@ -1,4 +1,3 @@
-#![cfg(not(feature = "rete"))]
 use egg::{rewrite as rw, *};
 
 use log::trace;
@@ -141,8 +140,9 @@ pub fn rules() -> Vec<Rewrite> { vec![
     rw!("zero-mul"; "(* ?a 0)" => "0"),
     rw!("one-mul";  "(* ?a 1)" => "?a"),
 
-    rw!("add-zero"; "?a" => "(+ ?a 0)"),
-    rw!("mul-one";  "?a" => "(* ?a 1)"),
+    //rw!("plus-to-times"; "(+ ?a ?a)" => "(* 2 ?a)");
+    //rw!("add-zero"; "?a" => "(+ ?a 0)"),
+    //rw!("mul-one";  "?a" => "(* ?a 1)"),
 
     rw!("cancel-sub"; "(- ?a ?a)" => "0"),
     rw!("cancel-div"; "(/ ?a ?a)" => "1"),
@@ -150,7 +150,7 @@ pub fn rules() -> Vec<Rewrite> { vec![
     rw!("distribute"; "(* ?a (+ ?b ?c))"        => "(+ (* ?a ?b) (* ?a ?c))"),
     rw!("factor"    ; "(+ (* ?a ?b) (* ?a ?c))" => "(* ?a (+ ?b ?c))"),
 
-    rw!("pow-intro"; "?a" => "(pow ?a 1)"),
+    //rw!("pow-intro"; "?a" => "(pow ?a 1)"),
     rw!("pow-mul"; "(* (pow ?a ?b) (pow ?a ?c))" => "(pow ?a (+ ?b ?c))"),
     rw!("pow0"; "(pow ?x 0)" => "1"),
     rw!("pow1"; "(pow ?x 1)" => "?x"),
@@ -180,7 +180,7 @@ fn associate_adds() {
     let start = "(+ 1 (+ 2 (+ 3 (+ 4 (+ 5 (+ 6 7))))))";
     let start_expr = start.parse().unwrap();
 
-    let rules = &[
+    let rules = vec![
         rw!("comm-add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
         rw!("assoc-add"; "(+ ?a (+ ?b ?c))" => "(+ (+ ?a ?b) ?c)"),
     ];
@@ -190,8 +190,9 @@ fn associate_adds() {
         .with_iter_limit(7)
         .with_node_limit(8_000)
         .with_scheduler(SimpleScheduler) // disable banning
-        .with_expr(&start_expr)
-        .run(rules)
+	.with_rules(rules)
+	.with_expr(&start_expr)
+        .run()
         .egraph;
 
     // there are exactly 127 non-empty subsets of 7 things
@@ -216,9 +217,10 @@ macro_rules! check {
                 let runner = Runner::new()
                     .with_iter_limit($iters)
                     .with_node_limit($limit)
-                    .with_expr(&start_expr)
+		    .with_rules(rules.clone())
+		    .with_expr(&start_expr)
                     .with_expr(&end_expr)
-                    .run(&rules);
+                    .run();
 
                 (runner.egraph, runner.roots[0], runner.stop_reason.unwrap())
             });
@@ -251,7 +253,10 @@ check!(
 );
 
 check!(
-    #[cfg_attr(feature = "parent-pointers", ignore)]
+    simple_match,   10,  1_000, "(+ a b)" => "(+ b a)"
+);
+
+check!(
     simplify_add,   10,  1_000, "(+ x (+ x (+ x x)))" => "(* 4 x)"
 );
 check!(
@@ -287,3 +292,40 @@ check!(
     "(d x (- (pow x 3) (* 7 (pow x 2))))" =>
     "(* x (- (* 3 x) 14))"
 );
+
+#[test]
+fn annotations_correct() {
+    let start = "(f 2 (+ 3 4))";
+    let start_expr = start.parse().unwrap();
+    let end = "(f 2 8)";
+    let end_expr : RecExpr<_> = end.parse().unwrap();
+
+    let rules : &[egg::Rewrite<Math, ()>] = &[
+        rw!("fourtofive"; "4" => "5"),
+	rw!("simple"; "(+ ?x 5)" => "8"),
+    ];
+
+    // Must specfify the () metadata so pruning doesn't mess us up here
+    let runner: egg::Runner<Math, (), ()> = Runner::new()
+        .with_iter_limit(7)
+        .with_node_limit(8_000)
+        .with_scheduler(SimpleScheduler) // disable banning
+        .with_rules(rules.to_vec())
+        .with_expr(&start_expr).run();
+    
+    let egraph = runner.egraph;
+    let root = runner.roots[0];
+    let pattern = Pattern::from(end_expr);
+    let matches = pattern.search_eclass(&egraph, root);
+    egraph.dot().to_svg("target/heck.svg").unwrap();
+
+    if matches.is_none() {
+        println!("start: {}", start_expr.pretty(40));
+        println!("start: {:?}", start_expr);
+        panic!(
+            "\nCould not simplify\n{}\nto\n{}\n",
+            start,
+            end,
+        );
+    }
+}

@@ -68,6 +68,7 @@ impl<L : Language> Rete<L> {
         let op = node.op.clone();
         let idx = self.table.len();
         self.table.push((node, appliers));
+	print!("children size of rule {}\n", expr.children.len());
         self.map.entry((op, expr.children.len()))
             .and_modify(|vec| vec.push(idx))
             .or_insert(SmallVec::from_elem(idx,1));
@@ -76,12 +77,14 @@ impl<L : Language> Rete<L> {
 
     /// Returns all `RetePat` which match the given query
     pub fn make_node_matches(&self, node: &ENode<L>) ->  ReteMatches {
+	print!("trying with node children len {} \n", node.children.len());
 	let mut matches: ReteMatches = IndexMap::default();
 	
 	
         let retepats = self.map.get(&(node.op.clone(), node.children.len())).map_or(&[] as &[usize], |vec| vec.as_slice());
 
 	for retepat in retepats {
+	    print!("added to entry {}\n", retepat);
 	    matches.entry(*retepat)
 		.and_modify(|vec| vec.push(node.children.clone()))
 		.or_insert(vec![node.children.clone()]);
