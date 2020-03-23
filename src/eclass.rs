@@ -7,7 +7,6 @@ use crate::{
     EGraph, ENode, Id, Language,
 };
 
-#[cfg(feature = "parent-pointers")]
 use crate::{ReteMatches, merge_retematches};
 
 /** Arbitrary data associated with an [`EClass`].
@@ -134,7 +133,7 @@ pub struct EClass<L, M> {
     /// The metadata associated with this eclass.
     pub metadata: M,
 
-    #[cfg(feature = "parent-pointers")]
+    #[cfg(feature = "rete")]
     pub rmatches: ReteMatches,
     #[cfg(feature = "parent-pointers")]
     #[doc(hidden)]
@@ -179,7 +178,7 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
             id: to.id,
             nodes: extend_owned(to.nodes, from.nodes),
             metadata: to.metadata.merge(&from.metadata),
-            #[cfg(feature = "parent-pointers")]
+            #[cfg(feature = "rete")]
 	    rmatches: to.rmatches,
             #[cfg(feature = "parent-pointers")]
             parents: {

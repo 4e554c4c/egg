@@ -140,7 +140,7 @@ pub fn rules() -> Vec<Rewrite> { vec![
     rw!("zero-mul"; "(* ?a 0)" => "0"),
     rw!("one-mul";  "(* ?a 1)" => "?a"),
 
-    //rw!("plus-to-times"; "(+ ?a ?a)" => "(* 2 ?a)");
+    rw!("add-to-mul"; "(+ ?a ?a)" => "(* ?a 2)"),
     //rw!("add-zero"; "?a" => "(+ ?a 0)"),
     //rw!("mul-one";  "?a" => "(* ?a 1)"),
 
@@ -257,6 +257,7 @@ check!(
 );
 
 check!(
+    #[cfg_attr(feature = "parent-pointers", ignore)]
     simplify_add,   10,  1_000, "(+ x (+ x (+ x x)))" => "(* 4 x)"
 );
 check!(
