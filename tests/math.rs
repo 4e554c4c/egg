@@ -155,14 +155,17 @@ pub fn rules() -> Vec<Rewrite> { vec![
     rw!("pow0"; "(pow ?x 0)" => "1"),
     rw!("pow1"; "(pow ?x 1)" => "?x"),
     rw!("pow2"; "(pow ?x 2)" => "(* ?x ?x)"),
+    #[cfg_attr(feature = "rete", ignore)]
     rw!("pow-recip"; "(pow ?x -1)" => "(/ 1 ?x)" if is_not_zero("?x")),
 
     rw!("d-variable"; "(d ?x ?x)" => "1"),
+    #[cfg_attr(feature = "rete", ignore)]
     rw!("d-constant"; "(d ?x ?c)" => "0" if c_is_const_or_var_and_not_x),
 
     rw!("d-add"; "(d ?x (+ ?a ?b))" => "(+ (d ?x ?a) (d ?x ?b))"),
     rw!("d-mul"; "(d ?x (* ?a ?b))" => "(+ (* ?a (d ?x ?b)) (* ?b (d ?x ?a)))"),
 
+    #[cfg_attr(feature = "rete", ignore)]
     rw!("d-power";
         "(d ?x (pow ?f ?g))" =>
         "(* (pow ?f ?g)
@@ -262,6 +265,10 @@ check!(
 );
 check!(
     #[cfg_attr(feature = "parent-pointers", ignore)]
+    small_simplify_const,  4,  1_000, "(+ 1 (- a (* a 1)))" => "1"
+);
+check!(
+    #[cfg_attr(feature = "parent-pointers", ignore)]
     simplify_const,  4,  1_000, "(+ 1 (- a (* (- 2 1) a)))" => "1"
 );
 check!(
@@ -285,10 +292,12 @@ check!(diff_simple2,   10, 5_000, "(d x (+ 1 (* y x)))" => "y");
 
 check!(
     #[cfg_attr(feature = "parent-pointers", ignore)]
+    #[cfg_attr(feature = "rete", ignore)]
     diff_power_simple, 20, 50_000, "(d x (pow x 3))" => "(* 3 (pow x 2))"
 );
 check!(
     #[cfg_attr(feature = "parent-pointers", ignore)]
+    #[cfg_attr(feature = "rete", ignore)]
     diff_power_harder, 50, 50_000,
     "(d x (- (pow x 3) (* 7 (pow x 2))))" =>
     "(* x (- (* 3 x) 14))"

@@ -78,9 +78,7 @@ impl<L : Language> Rete<L> {
     pub fn make_node_matches(&self, node: &ENode<L>) ->  ReteMatches {
 	let mut matches: ReteMatches = IndexMap::default();
 	
-	
         let retepats = self.map.get(&(node.op.clone(), node.children.len())).map_or(&[] as &[usize], |vec| vec.as_slice());
-
 	for retepat in retepats {
 	    matches.entry(*retepat)
 		.and_modify(|vec| vec.push(node.children.clone()))
@@ -102,8 +100,15 @@ impl<L : Language> Rete<L> {
 	let mut res: Vec<Subst> = Vec::default();
 	let empty = Vec::new();
 	let rmatches: &Vec<ReteMatch> = class.rmatches.get(&rpat).unwrap_or(&empty);
-	for rmatch in rmatches {
-	    res.append(&mut self.extract_from_match(classes, rmatch, rpat));
+	
+	if self.table[rpat].0.children.len() == 0{
+	    if rmatches.len() > 0 {
+		res.push(Subst::default());
+	    }
+	} else {
+	    for rmatch in rmatches {
+		res.append(&mut self.extract_from_match(classes, rmatch, rpat));
+	    } 
 	}
 	res
     }
@@ -137,4 +142,30 @@ impl<L : Language> Rete<L> {
 }
 
 
+
+#[cfg(test)]
+mod tests {
+    use crate::rete::{ReteMatches, merge_retematches};
+    use indexmap::{IndexMap, IndexSet};
+    use smallvec::{smallvec};
+    
+    #[test]
+    fn test_merge_retematches() {
+	let mut r1: ReteMatches = IndexMap::default();
+	r1.entry(0).or_insert(vec![smallvec![3], smallvec![4]]);
+	r1.entry(1).or_insert(vec![smallvec![5], smallvec![6]]);
+
+	let mut r2: ReteMatches = IndexMap::default();
+	r2.entry(1).or_insert(vec![smallvec![7], smallvec![8]]);
+	r2.entry(2).or_insert(vec![smallvec![9]]);
+
+	let mut result: ReteMatches = IndexMap::default();
+	result.entry(0).or_insert(vec![smallvec![3], smallvec![4]]);
+	result.entry(1).or_insert(vec![smallvec![5], smallvec![6], smallvec![7], smallvec![8]]);
+	result.entry(2).or_insert(vec![smallvec![9]]);
+
+	merge_retematches(&mut r1,&mut r2);
+	assert_eq!(r1, result);
+    }
+}
 
