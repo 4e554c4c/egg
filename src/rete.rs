@@ -117,10 +117,11 @@ impl<L : Language> Rete<L> {
 	let lhs = &self.table[rpat].0;
 	let mut new_substs = Vec::new();
 
+	// When we substitute, find the parent because it may not be the leader any more
 	let arg_substs: Vec<_> = self.table[rpat].0.children.iter().zip(rmatch)
 	    .map(|(pa, ea)|
 		 match pa {
-		     RChild::Var(v) => vec![Subst::from_item(v.clone(), *ea)],
+		     RChild::Var(v) => vec![Subst::from_item(v.clone(), classes.find(*ea))],
 		     RChild::Ref(subpat) => self.eclass_matches(classes, classes.get(*ea), *subpat),
 		 }).collect();
 
