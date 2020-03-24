@@ -227,7 +227,7 @@ macro_rules! check {
 
                 (runner.egraph, runner.roots[0], runner.stop_reason.unwrap())
             });
-
+	    
             println!("Stopped because {:?}", reason);
             let (cost, best) = Extractor::new(&egraph, MathCostFn).find_best(root);
             println!("Best ({}): {}", cost, best.pretty(40));
@@ -271,6 +271,17 @@ check!(
     #[cfg_attr(feature = "parent-pointers", ignore)]
     simplify_const,  4,  1_000, "(+ 1 (- a (* (- 2 1) a)))" => "1"
 );
+
+check!(
+    #[cfg_attr(feature = "parent-pointers", ignore)]
+    root_simple, 7, 75_000, r#"
+             (- (+  1 a)
+                (- 1 a))
+        "#
+       => "(+ a a)"
+);
+
+
 check!(
     #[cfg_attr(feature = "parent-pointers", ignore)]
     simplify_root, 10, 75_000, r#"

@@ -444,8 +444,19 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
 
             class.nodes.clear();
             class.nodes.extend(unique);
-        }
 
+	    // also fix rmatches
+	    for (rpat, oldv) in class.rmatches.iter_mut() {
+		let unique: IndexSet<_> = oldv
+		    .iter()
+		    .map(|rpat| rpat.iter().cloned().map(&find).collect())
+		    .collect();
+		
+		oldv.clear();
+		oldv.extend(unique);
+	    }
+        }
+	
         trimmed
     }
 
