@@ -36,7 +36,7 @@ pub enum RChild {
 pub struct Rete<L> {
     pub table: Vec<(ENode<L, RChild>, Vec<RuleIndex>)>,
     // XXX use smallvec or no?
-    map: HashMap<(L, usize), SmallVec<[RetePat; 2]>,>,
+    map: HashMap<(L, usize), SmallVec<[RetePat; 2]>>,
 }
 
 impl<L : std::hash::Hash + Eq> Default for Rete<L> {
@@ -52,7 +52,6 @@ impl<L : Language> Rete<L> {
     /// Compile `pattern` to several rete patterns and return the
     /// representative `RetePat`
     // TODO allow for expressions containing one variable
-    // TODO delete duplicate patterns
     pub(crate) fn add_pattern(&mut self, pattern: &PatternAst<L>, appliers: Vec<RuleIndex>) -> RetePat {
         let expr = match pattern {
             PatternAst::ENode(expr) => expr,
@@ -154,15 +153,18 @@ mod tests {
 	let mut r1: ReteMatches = IndexMap::default();
 	r1.entry(0).or_insert(vec![smallvec![3], smallvec![4]]);
 	r1.entry(1).or_insert(vec![smallvec![5], smallvec![6]]);
+	r1.entry(4).or_insert(vec![smallvec![20]]);
 
 	let mut r2: ReteMatches = IndexMap::default();
 	r2.entry(1).or_insert(vec![smallvec![7], smallvec![8]]);
 	r2.entry(2).or_insert(vec![smallvec![9]]);
+	r2.entry(4).or_insert(vec![smallvec![20]]);
 
 	let mut result: ReteMatches = IndexMap::default();
 	result.entry(0).or_insert(vec![smallvec![3], smallvec![4]]);
 	result.entry(1).or_insert(vec![smallvec![5], smallvec![6], smallvec![7], smallvec![8]]);
 	result.entry(2).or_insert(vec![smallvec![9]]);
+	result.entry(4).or_insert(vec![smallvec![20], smallvec![20]]);
 
 	merge_retematches(&mut r1,&mut r2);
 	assert_eq!(r1, result);

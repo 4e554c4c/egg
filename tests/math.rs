@@ -281,6 +281,14 @@ check!(
        => "(+ a a)"
 );
 
+check!(
+    #[cfg_attr(feature = "parent-pointers", ignore)]
+    after_root, 3, 75_000, r#"
+          (+ (+ 0 a) a)
+        "#
+	=> "(+ a a)"
+);
+
 
 check!(
     #[cfg_attr(feature = "parent-pointers", ignore)]
@@ -338,7 +346,7 @@ fn annotations_correct() {
     let root = runner.roots[0];
     let pattern = Pattern::from(end_expr);
     let matches = pattern.search_eclass(&egraph, root);
-    egraph.dot().to_svg("target/heck.svg").unwrap();
+    //egraph.dot().to_svg("target/heck.svg").unwrap();
 
     if matches.is_none() {
         println!("start: {}", start_expr.pretty(40));
