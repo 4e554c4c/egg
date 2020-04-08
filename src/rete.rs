@@ -90,7 +90,9 @@ impl<L : Language> Rete<L> {
     pub fn extract_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: &EClass<L, M>) -> Vec<(Vec<RuleIndex>, Vec<Subst>)> {
 	let mut res: Vec<_> = Vec::default();
 	for (rpat, rms) in &class.rmatches {
-	    res.push((self.table[*rpat].1.clone(), self.eclass_matches(classes, class, *rpat)));
+	    if(self.table[*rpat].1.len() > 0) {
+		res.push((self.table[*rpat].1.clone(), self.eclass_matches(classes, class, *rpat)));
+	    }
 	}
 	res
     }
