@@ -304,8 +304,7 @@ where
     pub fn with_rules(mut self, mut rules: Vec<Rewrite<L, M>>) -> Self {
 	for iter in 0..rules.len() {
 	    let rewrite = &mut rules[iter];
-	    let retepat = self.egraph.rete.add_pattern(&rewrite.searcher.ast, vec![iter]);
-	    Rc::make_mut(&mut rewrite.searcher).retepat = retepat;
+	    self.egraph.rete.add_pattern(&rewrite.searcher.ast, vec![iter]);
 	}
         Self { rules, ..self }
     }
@@ -344,6 +343,8 @@ where
 	
         let search_time = search_time.elapsed().as_secs_f64();
         info!("Search time: {}", search_time);
+
+	self.egraph.reset_matches();
 
         let apply_time = Instant::now();
 

@@ -135,6 +135,8 @@ pub struct EClass<L, M> {
 
     #[cfg(feature = "rete")]
     pub rmatches: ReteMatches,
+    #[cfg(feature = "rete")]
+    pub newrmatches: ReteMatches,
     #[cfg(feature = "parent-pointers")]
     #[doc(hidden)]
     pub(crate) parents: indexmap::IndexSet<usize>,
@@ -173,6 +175,7 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
         mut from: Self,
     ) -> Result<Self, Self::Error> {
 	merge_retematches(&mut to.rmatches, &mut from.rmatches);
+	merge_retematches(&mut to.newrmatches, &mut from.newrmatches);
 	
         let mut eclass = EClass {
             id: to.id,
@@ -180,6 +183,8 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
             metadata: to.metadata.merge(&from.metadata),
             #[cfg(feature = "rete")]
 	    rmatches: to.rmatches,
+	    #[cfg(feature = "rete")]
+	    newrmatches: to.newrmatches,
             #[cfg(feature = "parent-pointers")]
             parents: {
                 let mut parents = to.parents;

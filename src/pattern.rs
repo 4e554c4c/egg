@@ -5,8 +5,6 @@ use log::*;
 use crate::{
     machine, Applier, EGraph, ENode, Id, Language, Metadata, RecExpr, Searcher, Subst, Var,
 };
-#[cfg(feature = "rete")]
-use crate::RetePat;
 
 use std::usize;
 
@@ -72,8 +70,6 @@ use std::usize;
 pub struct Pattern<L> {
     pub(crate) ast: PatternAst<L>,
     program: machine::Program<L>,
-    #[cfg(feature = "rete")]
-    pub(crate) retepat: RetePat,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -89,8 +85,6 @@ impl<L: Language> PatternAst<L> {
         let program = machine::Program::compile_from_pat(&self);
         Pattern {
             ast: self, program,
-            #[cfg(feature = "rete")]
-            retepat: usize::MAX,
         }
     }
 }

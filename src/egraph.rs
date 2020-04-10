@@ -6,6 +6,7 @@ use log::*;
 use crate::{unionfind::UnionFind, Dot, EClass, ENode, Id, Language, Metadata, RecExpr, Subst, SearchMatches};
 #[cfg(feature = "rete")]
 use crate::rete::{Rete,RetePat,RuleIndex};
+use crate::{merge_retematches};
 
 /** A data structure to keep track of equalities between expressions.
 
@@ -352,7 +353,9 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             #[cfg(feature = "parent-pointers")]
             parents: IndexSet::new(),
             #[cfg(feature = "rete")]
-            rmatches: self.rete.make_node_matches(&enode),
+            rmatches: IndexMap::new(),
+	    #[cfg(feature = "rete")]
+            newrmatches: self.rete.make_node_matches(&enode),
         };
 
 	M::modify(&mut class);
@@ -403,6 +406,15 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
         equiv_eclasses
     }
 
+    pub fn reset_matches(&mut self) {
+	let (find, mut_values) = self.classes.split();
+        for class in mut_values {
+	    merge_retematches(&mut class.rmatches, &mut class.newrmatches);
+	    class.newrmatches = IndexMap::default();
+        }
+	
+    }
+
     #[cfg(not(feature = "parent-pointers"))]
     fn rebuild_once(&mut self) -> usize {
         let mut new_memo = IndexMap::new();
@@ -444,14 +456,21 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
 
             class.nodes.clear();
             class.nodes.extend(unique);
-
 	    // also fix rmatches
 	    for (rpat, oldv) in class.rmatches.iter_mut() {
 		let unique: IndexSet<_> = oldv
 		    .iter()
 		    .map(|rpat| rpat.iter().cloned().map(&find).collect())
 		    .collect();
-		
+		oldv.clear();
+		oldv.extend(unique);
+	    }
+	    
+	    for (rpat, oldv) in class.newrmatches.iter_mut() {
+		let unique: IndexSet<_> = oldv
+		    .iter()
+		    .map(|rpat| rpat.iter().cloned().map(&find).collect())
+		    .collect();
 		oldv.clear();
 		oldv.extend(unique);
 	    }

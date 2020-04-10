@@ -91,40 +91,59 @@ impl<L : Language> Rete<L> {
 	let mut res: Vec<_> = Vec::default();
 	for (rpat, rms) in &class.rmatches {
 	    if(self.table[*rpat].1.len() > 0) {
-		res.push((self.table[*rpat].1.clone(), self.eclass_matches(classes, class, *rpat)));
+		res.push((self.table[*rpat].1.clone(), self.eclass_matches(classes, class, *rpat, true)));
 	    }
 	}
+
+	for (rpat, rms) in &class.newrmatches {
+	    if(self.table[*rpat].1.len() > 0) {
+		res.push((self.table[*rpat].1.clone(), self.eclass_matches(classes, class, *rpat, false)));
+	    }
+	}
+	
 	res
     }
 
-    pub fn eclass_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: &EClass<L, M>, rpat: RetePat) -> Vec<Subst> {
+    pub fn eclass_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: &EClass<L, M>, rpat: RetePat, isold: bool) -> Vec<Subst> {
 	let mut res: Vec<Subst> = Vec::default();
 	let empty = Vec::new();
-	let rmatches: &Vec<ReteMatch> = class.rmatches.get(&rpat).unwrap_or(&empty);
+	let rmatches: &Vec<ReteMatch> =
+	    if isold {
+		class.rmatches.get(&rpat).unwrap_or(&empty)
+	    } else {
+		class.newrmatches.get(&rpat).unwrap_or(&empty)
+	    };
 	
-	if self.table[rpat].0.children.len() == 0{
+	if self.table[rpat].0.children.len() == 0 {
 	    if rmatches.len() > 0 {
 		res.push(Subst::default());
 	    }
 	} else {
 	    for rmatch in rmatches {
-		res.append(&mut self.extract_from_match(classes, rmatch, rpat));
+		res.append(&mut self.extract_from_match(classes, rmatch, rpat, isold));
 	    }
 	}
 	res
     }
 
-    pub fn extract_from_match<M>(&self, classes: &UnionFind<Id, EClass<L, M>>,rmatch: &ReteMatch, rpat: RetePat) -> Vec<Subst> {
+    pub fn extract_from_match<M>(&self, classes: &UnionFind<Id, EClass<L, M>>,rmatch: &ReteMatch, rpat: RetePat, isold: bool) -> Vec<Subst> {
 	let lhs = &self.table[rpat].0;
 	let mut new_substs = Vec::new();
 
-	let arg_substs: Vec<_> = self.table[rpat].0.children.iter().zip(rmatch)
+	
+	let mut arg_substs: Vec<_> = self.table[rpat].0.children.iter().zip(rmatch)
 	    .map(|(pa, ea)|
 		 match pa {
 		     RChild::Var(v) => vec![Subst::from_item(v.clone(), *ea)],
-		     RChild::Ref(subpat) => self.eclass_matches(classes, classes.get(*ea), *subpat),
+		     RChild::Ref(subpat) => {
+			 let mut matches = self.eclass_matches(classes, classes.get(*ea), *subpat, false);
+			 if !isold {
+			     matches.extend(self.eclass_matches(classes, classes.get(*ea), *subpat, true));
+			 }
+			 matches
+		     },
 		 }).collect();
-
+	
 	'outer: for ms in arg_substs.iter().multi_cartesian_product() {
 	    let mut combined = ms[0].clone();
 	    for m in &ms[1..] {
