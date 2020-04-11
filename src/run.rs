@@ -196,7 +196,8 @@ where
             stop_reason: None,
 
             start_time: None,
-            scheduler: Box::new(BackoffScheduler::default()),
+	    // TODO add scheduler support with rete
+            scheduler: Box::new(SimpleScheduler{}),
         }
     }
 }
@@ -340,6 +341,11 @@ where
         let search_time = Instant::now();
 
         let mut matches = self.egraph.rete_matches(self.rules.len());
+	let mut summatches = 0;
+	for m in &matches {
+	    summatches += m.len();
+	}
+	print!("Matches: {}\n", summatches);
 	
         let search_time = search_time.elapsed().as_secs_f64();
         info!("Search time: {}", search_time);

@@ -221,6 +221,7 @@ macro_rules! check {
                     .with_iter_limit($iters)
                     .with_node_limit($limit)
 		    .with_rules(rules.clone())
+		    .with_scheduler(SimpleScheduler)
 		    .with_expr(&start_expr)
                     .with_expr(&end_expr)
                     .run();
