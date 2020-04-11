@@ -341,8 +341,10 @@ where
         let search_time = Instant::now();
 
         let mut matches = self.egraph.rete_matches(self.rules.len());
+
 	let mut summatches = 0;
 	for m in &matches {
+	    print!(" {} ", m.len());
 	    summatches += m.len();
 	}
 	print!("Matches: {}\n", summatches);

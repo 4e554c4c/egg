@@ -107,7 +107,10 @@ impl<L : Language> Rete<L> {
 	    let rpats = &self.leadertorpats[*rpatleader];
 	    for rpat in rpats {
 		if(self.table[*rpat].1.len() > 0) {
-		    res.push((self.table[*rpat].1.clone(), self.eclass_matches(classes, class, *rpat, true)));
+		    let matches = self.eclass_matches(classes, class, *rpat, true);
+		    if matches.len() > 0 {
+			res.push((self.table[*rpat].1.clone(), matches));
+		    }
 		}
 	    }
 	}
@@ -116,7 +119,10 @@ impl<L : Language> Rete<L> {
 	    let rpats = &self.leadertorpats[*rpatleader];
 	    for rpat in rpats {
 		if(self.table[*rpat].1.len() > 0) {
-		    res.push((self.table[*rpat].1.clone(), self.eclass_matches(classes, class, *rpat, false)));
+		    let matches = self.eclass_matches(classes, class, *rpat, false);
+		    if matches.len() > 0 {
+			res.push((self.table[*rpat].1.clone(), matches));
+		    }
 		}
 	    }
 	}
