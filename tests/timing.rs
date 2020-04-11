@@ -241,7 +241,7 @@ fn time_egg() {
 	counter += 1;
 	if(batch.len() > 0) {
 	    let mut runner = Runner::new()
-		.with_iter_limit(10)
+		.with_iter_limit(100)
 		.with_rules(rules().clone());
 	    for line in batch {
 		runner = runner.with_expr(&line);
