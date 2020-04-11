@@ -5,7 +5,7 @@ use log::*;
 
 use crate::{unionfind::UnionFind, Dot, EClass, ENode, Id, Language, Metadata, RecExpr, Subst, SearchMatches};
 #[cfg(feature = "rete")]
-use crate::rete::{Rete,RetePat,RuleIndex};
+use crate::rete::{Rete,RetePat,RuleIndex, ReteMatch};
 use crate::{merge_retematches};
 
 /** A data structure to keep track of equalities between expressions.
@@ -456,21 +456,39 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
 
             class.nodes.clear();
             class.nodes.extend(unique);
+
+	    let mut rsets: IndexMap<RetePat, IndexSet<ReteMatch>> = IndexMap::default();
+	    
 	    // also fix rmatches
 	    for (rpat, oldv) in class.rmatches.iter_mut() {
-		let unique: IndexSet<_> = oldv
+		let unique: IndexSet<ReteMatch> = oldv
 		    .iter()
 		    .map(|rpat| rpat.iter().cloned().map(&find).collect())
 		    .collect();
 		oldv.clear();
-		oldv.extend(unique);
+		for u in unique.iter() {
+		    oldv.push(u.clone());
+		}
+		
+		rsets.entry(*rpat)
+		    .or_insert(unique);
 	    }
 	    
+	    
+	    
 	    for (rpat, oldv) in class.newrmatches.iter_mut() {
-		let unique: IndexSet<_> = oldv
-		    .iter()
-		    .map(|rpat| rpat.iter().cloned().map(&find).collect())
-		    .collect();
+		let mut unique: IndexSet<ReteMatch> = IndexSet::default();
+		for pat in oldv.iter() {
+		    let cloned: ReteMatch = pat.iter().cloned().map(&find).collect();
+		    if let Some(existing) = rsets.get(rpat) {
+			if existing.contains(&cloned) {
+			    continue;
+			}
+		    }
+		    unique.insert(cloned);
+		}
+		
+		
 		oldv.clear();
 		oldv.extend(unique);
 	    }

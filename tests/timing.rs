@@ -235,12 +235,13 @@ fn time_egg() {
     let mut data_file = File::create("./timing-results.txt").unwrap();
     let mut all_data: Vec<Vec<f64>> = vec![];
     let mut counter = 0;
-    for batch in batches {
+    for batchi in 0..10 {
+	let batch = &batches[batchi];
 	print!("batch {}\n", counter);
 	counter += 1;
 	if(batch.len() > 0) {
 	    let mut runner = Runner::new()
-		.with_iter_limit(4)
+		.with_iter_limit(10)
 		.with_rules(rules().clone());
 	    for line in batch {
 		runner = runner.with_expr(&line);
