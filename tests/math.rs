@@ -245,6 +245,16 @@ macro_rules! check {
 }
 
 check!(
+    #[cfg_attr(feature = "parent-pointers", ignore)]
+    root_simple, 7, 75_000, r#"
+             (- (+  1 a)
+                (- 1 a))
+        "#
+       => "(+ a a)"
+);
+
+
+check!(
     #[should_panic(expected = "Could not simplify")]
     simplify_fail, 5, 1_000, "(+ x y)" => "(/ x y)"
 );
