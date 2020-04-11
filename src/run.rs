@@ -336,6 +336,7 @@ where
 
 	let mut summatches = 0;
 	for m in &matches {
+	    print!(" {} ", m.len());
 	    summatches += m.len();
 	}
 	print!("Matches: {}\n", summatches);

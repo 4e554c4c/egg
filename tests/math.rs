@@ -140,8 +140,9 @@ pub fn rules() -> Vec<Rewrite> { vec![
     rw!("zero-mul"; "(* ?a 0)" => "0"),
     rw!("one-mul";  "(* ?a 1)" => "?a"),
 
-    rw!("add-zero"; "?a" => "(+ ?a 0)"),
-    rw!("mul-one";  "?a" => "(* ?a 1)"),
+    rw!("add-to-mul"; "(+ ?a ?a)" => "(* ?a 2)"),
+    //rw!("add-zero"; "?a" => "(+ ?a 0)"),
+    //rw!("mul-one";  "?a" => "(* ?a 1)"),
 
     rw!("cancel-sub"; "(- ?a ?a)" => "0"),
     rw!("cancel-div"; "(/ ?a ?a)" => "1"),
@@ -149,19 +150,22 @@ pub fn rules() -> Vec<Rewrite> { vec![
     rw!("distribute"; "(* ?a (+ ?b ?c))"        => "(+ (* ?a ?b) (* ?a ?c))"),
     rw!("factor"    ; "(+ (* ?a ?b) (* ?a ?c))" => "(* ?a (+ ?b ?c))"),
 
-    rw!("pow-intro"; "?a" => "(pow ?a 1)"),
+    //rw!("pow-intro"; "?a" => "(pow ?a 1)"),
     rw!("pow-mul"; "(* (pow ?a ?b) (pow ?a ?c))" => "(pow ?a (+ ?b ?c))"),
     rw!("pow0"; "(pow ?x 0)" => "1"),
     rw!("pow1"; "(pow ?x 1)" => "?x"),
     rw!("pow2"; "(pow ?x 2)" => "(* ?x ?x)"),
+    #[cfg_attr(feature = "rete", ignore)]
     rw!("pow-recip"; "(pow ?x -1)" => "(/ 1 ?x)" if is_not_zero("?x")),
 
     rw!("d-variable"; "(d ?x ?x)" => "1"),
+    #[cfg_attr(feature = "rete", ignore)]
     rw!("d-constant"; "(d ?x ?c)" => "0" if c_is_const_or_var_and_not_x),
 
     rw!("d-add"; "(d ?x (+ ?a ?b))" => "(+ (d ?x ?a) (d ?x ?b))"),
     rw!("d-mul"; "(d ?x (* ?a ?b))" => "(+ (* ?a (d ?x ?b)) (* ?b (d ?x ?a)))"),
 
+    #[cfg_attr(feature = "rete", ignore)]
     rw!("d-power";
         "(d ?x (pow ?f ?g))" =>
         "(* (pow ?f ?g)
@@ -172,6 +176,7 @@ pub fn rules() -> Vec<Rewrite> { vec![
         if is_not_zero("?f")
     ),
 ]}
+
 
 #[test]
 #[cfg_attr(feature = "parent-pointers", ignore)]
@@ -213,6 +218,7 @@ macro_rules! check {
             let rules = rules();
             let (egraph, root, reason) = egg_bench(stringify!($name), || {
                 let runner = Runner::new()
+		    .with_scheduler(SimpleScheduler)
                     .with_iter_limit($iters)
                     .with_node_limit($limit)
                     .with_expr(&start_expr)
