@@ -107,19 +107,7 @@ impl<L : Language> Rete<L> {
 	    let rpats = &self.leadertorpats[*rpatleader];
 	    for rpat in rpats {
 		if(self.table[*rpat].1.len() > 0) {
-		    let matches = self.eclass_matches(classes, class, *rpat, true);
-		    if matches.len() > 0 {
-			res.push((self.table[*rpat].1.clone(), matches));
-		    }
-		}
-	    }
-	}
-
-	for (rpatleader, rms) in &class.newrmatches {
-	    let rpats = &self.leadertorpats[*rpatleader];
-	    for rpat in rpats {
-		if(self.table[*rpat].1.len() > 0) {
-		    let matches = self.eclass_matches(classes, class, *rpat, false);
+		    let matches = self.eclass_matches(classes, class, *rpat);
 		    if matches.len() > 0 {
 			res.push((self.table[*rpat].1.clone(), matches));
 		    }
@@ -130,30 +118,25 @@ impl<L : Language> Rete<L> {
 	res
     }
 
-    pub fn eclass_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: &EClass<L, M>, rpat: RetePat, isold: bool) -> Vec<Subst> {
+    pub fn eclass_matches<M>(&self, classes: &UnionFind<Id, EClass<L, M>>, class: &EClass<L, M>, rpat: RetePat) -> Vec<Subst> {
 	let mut res: Vec<Subst> = Vec::default();
 	let empty = Vec::new();
 	let leader = self.rpatstoleader[rpat];
-	let rmatches: &Vec<ReteMatch> =
-	    if isold {
-		class.rmatches.get(&leader).unwrap_or(&empty)
-	    } else {
-		class.newrmatches.get(&leader).unwrap_or(&empty)
-	    };
-	
+	let rmatches: &Vec<ReteMatch> = class.rmatches.get(&leader).unwrap_or(&empty);
+	    
 	if self.table[rpat].0.children.len() == 0 {
 	    if rmatches.len() > 0 {
 		res.push(Subst::default());
 	    }
 	} else {
 	    for rmatch in rmatches {
-		res.append(&mut self.extract_from_match(classes, rmatch, rpat, isold));
+		res.append(&mut self.extract_from_match(classes, rmatch, rpat));
 	    }
 	}
 	res
     }
 
-    pub fn extract_from_match<M>(&self, classes: &UnionFind<Id, EClass<L, M>>,rmatch: &ReteMatch, rpat: RetePat, isold: bool) -> Vec<Subst> {
+    pub fn extract_from_match<M>(&self, classes: &UnionFind<Id, EClass<L, M>>,rmatch: &ReteMatch, rpat: RetePat) -> Vec<Subst> {
 	let lhs = &self.table[rpat].0;
 	let mut new_substs = Vec::new();
 
@@ -163,11 +146,7 @@ impl<L : Language> Rete<L> {
 		 match pa {
 		     RChild::Var(v) => vec![Subst::from_item(v.clone(), *ea)],
 		     RChild::Ref(subpat) => {
-			 let mut matches = self.eclass_matches(classes, classes.get(*ea), *subpat, false);
-			 if !isold {
-			     matches.extend(self.eclass_matches(classes, classes.get(*ea), *subpat, true));
-			 }
-			 matches
+			 self.eclass_matches(classes, classes.get(*ea), *subpat)
 		     },
 		 }).collect();
 	

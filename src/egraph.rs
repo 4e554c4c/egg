@@ -353,9 +353,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             #[cfg(feature = "parent-pointers")]
             parents: IndexSet::new(),
             #[cfg(feature = "rete")]
-            rmatches: IndexMap::new(),
-	    #[cfg(feature = "rete")]
-            newrmatches: self.rete.make_node_matches(&enode),
+            rmatches: self.rete.make_node_matches(&enode),
         };
 
 	M::modify(&mut class);
@@ -406,15 +404,6 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
         equiv_eclasses
     }
 
-    pub fn reset_matches(&mut self) {
-	let (find, mut_values) = self.classes.split();
-        for class in mut_values {
-	    merge_retematches(&mut class.rmatches, &mut class.newrmatches);
-	    class.newrmatches = IndexMap::default();
-        }
-	
-    }
-
     #[cfg(not(feature = "parent-pointers"))]
     fn rebuild_once(&mut self) -> usize {
         let mut new_memo = IndexMap::new();
@@ -457,38 +446,12 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             class.nodes.clear();
             class.nodes.extend(unique);
 
-	    let mut rsets: IndexMap<RetePat, IndexSet<ReteMatch>> = IndexMap::default();
-	    
 	    // also fix rmatches
 	    for (rpat, oldv) in class.rmatches.iter_mut() {
 		let unique: IndexSet<ReteMatch> = oldv
 		    .iter()
 		    .map(|rpat| rpat.iter().cloned().map(&find).collect())
 		    .collect();
-		oldv.clear();
-		for u in unique.iter() {
-		    oldv.push(u.clone());
-		}
-		
-		rsets.entry(*rpat)
-		    .or_insert(unique);
-	    }
-	    
-	    
-	    
-	    for (rpat, oldv) in class.newrmatches.iter_mut() {
-		let mut unique: IndexSet<ReteMatch> = IndexSet::default();
-		for pat in oldv.iter() {
-		    let cloned: ReteMatch = pat.iter().cloned().map(&find).collect();
-		    if let Some(existing) = rsets.get(rpat) {
-			if existing.contains(&cloned) {
-			    continue;
-			}
-		    }
-		    unique.insert(cloned);
-		}
-		
-		
 		oldv.clear();
 		oldv.extend(unique);
 	    }
