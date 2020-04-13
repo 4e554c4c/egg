@@ -391,11 +391,12 @@ fn write_row(data_file: &mut File, row: &Vec<f64>) {
 	   row[2].to_string());
 }
 
-fn write_run_data(data_file: &mut File, r: &Runner<Math, Meta>) -> Vec<f64> {
+fn write_run_data(data_file: &mut File, count_verification: &mut File, r: &Runner<Math, Meta>) -> Vec<f64> {
     let mut search_time: f64 = 0.0;
     let mut apply_time: f64 = 0.0;
     let mut rebuild_time: f64 = 0.0;
     for iteration in &r.iterations {
+	write!(count_verification, "{}\n", iteration.egraph_nodes);
 	search_time += iteration.search_time;
 	apply_time += iteration.apply_time;
 	rebuild_time += iteration.rebuild_time;
@@ -409,8 +410,8 @@ fn write_run_data(data_file: &mut File, r: &Runner<Math, Meta>) -> Vec<f64> {
 #[test] #[ignore]
 fn time_egg() {
     
-
     let batches = get_batches_from_file("../time-regraph/exprs/math-exprs.txt");
+    let mut node_count_verification = File::create("./node_verification_rete.txt").unwrap();
 
     let mut data_file = File::create("./timing-results.txt").unwrap();
     let mut all_data: Vec<Vec<f64>> = vec![];
@@ -439,7 +440,7 @@ fn time_egg() {
 		Some(StopReason::IterationLimit(i)) => {println!("Hit iter limit")},
 		None => panic!("bad run"),
 	    }
-	    let data = write_run_data(&mut data_file, &runner);
+	    let data = write_run_data(&mut data_file, &mut node_count_verification, &runner);
 	    all_data.push(data);
 	}
     }
