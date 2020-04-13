@@ -334,13 +334,6 @@ where
             self.check_limits()?;
         }
 
-	let mut summatches = 0;
-	for m in &matches {
-	    print!(" {} ", m.len());
-	    summatches += m.len();
-	}
-	print!("Matches: {}\n", summatches);
-
         let search_time = search_time.elapsed().as_secs_f64();
         info!("Search time: {}", search_time);
 
