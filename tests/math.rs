@@ -103,7 +103,7 @@ impl Metadata<Math> for Meta {
         // not pruning would be just pushing instead of replacing
         let best = eclass.metadata.best.as_ref();
         if best.children.is_empty() {
-            eclass.nodes = vec![ENode::leaf(best.op.clone())]
+            eclass.nodes.push(ENode::leaf(best.op.clone()));
         }
     }
 }
@@ -225,6 +225,8 @@ macro_rules! check {
                     .with_expr(&end_expr)
                     .run(&rules);
 
+		runner.egraph.dot().to_png("iter2.png").unwrap();
+
                 (runner.egraph, runner.roots[0], runner.stop_reason.unwrap())
             });
 
@@ -252,7 +254,7 @@ macro_rules! check {
 
 check!(
     #[cfg_attr(feature = "parent-pointers", ignore)]
-    root_simple, 7, 75_000, r#"
+    root_simple, 2, 75_000, r#"
              (- (+  1 a)
                 (- 1 a))
         "#
