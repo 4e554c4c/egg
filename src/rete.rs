@@ -29,12 +29,13 @@ pub fn merge_retematches(to: &mut ReteMatches, from: &mut ReteMatches) {
 }
 
 // TODO make non public
+#[derive(Clone)]
 pub enum RChild {
     Ref(RetePat),
     Var(Var),
 }
 
-//#[derive(Default)]
+#[derive(Clone)]
 pub struct Rete<L> {
     pub table: Vec<(ENode<L, RChild>, Vec<RuleIndex>)>,
     // XXX use smallvec or no?

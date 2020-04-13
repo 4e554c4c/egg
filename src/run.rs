@@ -347,7 +347,7 @@ where
         let apply_time = Instant::now();
 
         let mut applied = IndexMap::new();
-        for (rw, ms) in rules.iter().zip(matches) {
+        for (rw, ms) in self.rules.iter().zip(matches) {
             let total_matches: usize = ms.iter().map(|m| m.substs.len()).sum();
             if total_matches == 0 {
                 continue;

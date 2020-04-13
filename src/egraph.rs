@@ -144,7 +144,7 @@ impl<L: Language, M: Debug> Debug for EGraph<L, M> {
     }
 }
 
-impl<L, M> Default for EGraph<L, M> {
+impl<L : std::hash::Hash + Eq, M> Default for EGraph<L, M> {
     /// Returns an empty egraph.
     fn default() -> EGraph<L, M> {
         EGraph {
@@ -157,7 +157,7 @@ impl<L, M> Default for EGraph<L, M> {
     }
 }
 
-impl<L, M> EGraph<L, M> {
+impl<L : Language, M> EGraph<L, M> {
     /// Returns an iterator over the eclasses in the egraph.
     pub fn classes(&self) -> impl Iterator<Item = &EClass<L, M>> {
         self.classes.values()

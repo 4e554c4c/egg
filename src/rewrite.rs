@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{EGraph, Id, Language, Metadata, SearchMatches, Subst, PatternAst};
+use crate::{EGraph, Id, Language, Metadata, SearchMatches, Subst, PatternAst, Pattern};
 
 /// A rewrite that searches for the lefthand side and applies the righthand side.
 ///
@@ -24,8 +24,7 @@ use crate::{EGraph, Id, Language, Metadata, SearchMatches, Subst, PatternAst};
 pub struct Rewrite<L, M> {
     name: String,
     long_name: String,
-    pub searcher: Rc<dyn Searcher<L, M>>,
-    pub searcherast: PatternAst<L>,
+    pub searcher: Rc<Pattern<L>>,
     applier: Rc<dyn Applier<L, M>>,
 }
 
@@ -38,7 +37,7 @@ impl<L: Language, M: Metadata<L>> Rewrite<L, M> {
     pub fn new(
         name: impl Into<String>,
         long_name: impl Into<String>,
-        searcher: impl Searcher<L, M> + 'static,
+        searcher: Pattern<L>,
         applier: impl Applier<L, M> + 'static,
     ) -> Self {
         Self {

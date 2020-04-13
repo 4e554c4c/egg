@@ -1,3 +1,4 @@
+#![cfg(not(feature = "rete"))] 
 use egg::*;
 
 define_language! {

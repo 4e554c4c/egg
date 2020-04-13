@@ -2,6 +2,11 @@ use egg::{rewrite as rw, *};
 
 use log::trace;
 use ordered_float::NotNan;
+use std::fs::File;
+use std::io::{self, Write, BufReader, BufRead, Error};
+use std::path::Path;
+use instant::{Duration, Instant};
+
 
 pub type EGraph = egg::EGraph<Math, Meta>;
 pub type Rewrite = egg::Rewrite<Math, Meta>;
@@ -177,185 +182,83 @@ pub fn rules() -> Vec<Rewrite> { vec![
     ),
 ]}
 
-#[test]
-#[cfg_attr(feature = "parent-pointers", ignore)]
-fn associate_adds() {
-    let start = "(+ 1 (+ 2 (+ 3 (+ 4 (+ 5 (+ 6 7))))))";
-    let start_expr = start.parse().unwrap();
-
-    let rules = vec![
-        rw!("comm-add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
-        rw!("assoc-add"; "(+ ?a (+ ?b ?c))" => "(+ (+ ?a ?b) ?c)"),
-    ];
-
-    // Must specfify the () metadata so pruning doesn't mess us up here
-    let egraph: egg::EGraph<Math, ()> = Runner::new()
-        .with_iter_limit(7)
-        .with_node_limit(8_000)
-        .with_scheduler(SimpleScheduler) // disable banning
-	.with_rules(rules)
-	.with_expr(&start_expr)
-        .run()
-        .egraph;
-
-    // there are exactly 127 non-empty subsets of 7 things
-    assert_eq!(egraph.number_of_classes(), 127);
+// The output is wrapped in a Result to allow matching on errors
+// Returns an Iterator to the Reader of the lines of the file.
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where P: AsRef<Path>, {
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
 }
 
-macro_rules! check {
-    (
-        $(#[$meta:meta])*
-        $name:ident, $iters:literal, $limit:literal,
-        $start:literal => $end:literal
-    ) => {
-        $(#[$meta])*
-        #[test]
-        fn $name() {
-            let _ = env_logger::builder().is_test(true).try_init();
-            let start_expr: RecExpr<_> = $start.parse().expect(concat!("Failed to parse ", $start));
-            let end_expr: RecExpr<_> = $end.parse().expect(concat!("Failed to parse ", $end));
-
-            let rules = rules();
-            let (egraph, root, reason) = egg_bench(stringify!($name), || {
-                let runner = Runner::new()
-                    .with_iter_limit($iters)
-                    .with_node_limit($limit)
-		    .with_rules(rules.clone())
-		    .with_scheduler(SimpleScheduler)
-		    .with_expr(&start_expr)
-                    .with_expr(&end_expr)
-                    .run();
-
-                (runner.egraph, runner.roots[0], runner.stop_reason.unwrap())
-            });
-	    
-            println!("Stopped because {:?}", reason);
-            let (cost, best) = Extractor::new(&egraph, MathCostFn).find_best(root);
-            println!("Best ({}): {}", cost, best.pretty(40));
-
-            // make sure that pattern search also works
-            let pattern = Pattern::from(end_expr);
-            let matches = pattern.search_eclass(&egraph, root);
-
-            if matches.is_none() {
-                println!("start: {}", start_expr.pretty(40));
-                println!("start: {:?}", start_expr);
-                panic!(
-                    "\nCould not simplify\n{}\nto\n{}\nfound:\n{}",
-                    $start,
-                    $end,
-                    best.pretty(40)
-                );
-            }
-        }
-    };
-}
-
-check!(
-    #[should_panic(expected = "Could not simplify")]
-    simplify_fail, 5, 1_000, "(+ x y)" => "(/ x y)"
-);
-
-check!(
-    simple_match,   10,  1_000, "(+ a b)" => "(+ b a)"
-);
-
-check!(
-    #[cfg_attr(feature = "parent-pointers", ignore)]
-    simplify_add,   10,  1_000, "(+ x (+ x (+ x x)))" => "(* 4 x)"
-);
-check!(
-    #[cfg_attr(feature = "parent-pointers", ignore)]
-    small_simplify_const,  4,  1_000, "(+ 1 (- a (* a 1)))" => "1"
-);
-check!(
-    #[cfg_attr(feature = "parent-pointers", ignore)]
-    simplify_const,  4,  1_000, "(+ 1 (- a (* (- 2 1) a)))" => "1"
-);
-
-check!(
-    #[cfg_attr(feature = "parent-pointers", ignore)]
-    root_simple, 7, 75_000, r#"
-             (- (+  1 a)
-                (- 1 a))
-        "#
-       => "(+ a a)"
-);
-
-check!(
-    #[cfg_attr(feature = "parent-pointers", ignore)]
-    after_root, 3, 75_000, r#"
-          (+ (+ 0 a) a)
-        "#
-	=> "(+ a a)"
-);
-
-
-check!(
-    #[cfg_attr(feature = "parent-pointers", ignore)]
-    simplify_root, 10, 75_000, r#"
-          (/ 1
-             (- (/ (+ 1 (sqrt five))
-                   2)
-                (/ (- 1 (sqrt five))
-                   2)))
-        "#
-       => "(/ 1 (sqrt five))"
-);
-
-check!(powers,         10, 1_000, "(* (pow 2 x) (pow 2 y))" => "(pow 2 (+ x y))");
-
-check!(diff_same,      10, 1_000, "(d x x)" => "1");
-check!(diff_different, 10, 1_000, "(d x y)" => "0");
-check!(diff_simple1,   10, 5_000, "(d x (+ 1 (* 2 x)))" => "2");
-check!(diff_simple2,   10, 5_000, "(d x (+ 1 (* y x)))" => "y");
-
-check!(
-    #[cfg_attr(feature = "parent-pointers", ignore)]
-    #[cfg_attr(feature = "rete", ignore)]
-    diff_power_simple, 20, 50_000, "(d x (pow x 3))" => "(* 3 (pow x 2))"
-);
-check!(
-    #[cfg_attr(feature = "parent-pointers", ignore)]
-    #[cfg_attr(feature = "rete", ignore)]
-    diff_power_harder, 50, 50_000,
-    "(d x (- (pow x 3) (* 7 (pow x 2))))" =>
-    "(* x (- (* 3 x) 14))"
-);
-
-#[test]
-fn annotations_correct() {
-    let start = "(f 2 (+ 3 4))";
-    let start_expr = start.parse().unwrap();
-    let end = "(f 2 8)";
-    let end_expr : RecExpr<_> = end.parse().unwrap();
-
-    let rules : &[egg::Rewrite<Math, ()>] = &[
-        rw!("fourtofive"; "4" => "5"),
-	rw!("simple"; "(+ ?x 5)" => "8"),
-    ];
-
-    // Must specfify the () metadata so pruning doesn't mess us up here
-    let runner: egg::Runner<Math, (), ()> = Runner::new()
-        .with_iter_limit(7)
-        .with_node_limit(8_000)
-        .with_scheduler(SimpleScheduler) // disable banning
-        .with_rules(rules.to_vec())
-        .with_expr(&start_expr).run();
-    
-    let egraph = runner.egraph;
-    let root = runner.roots[0];
-    let pattern = Pattern::from(end_expr);
-    let matches = pattern.search_eclass(&egraph, root);
-    //egraph.dot().to_svg("target/heck.svg").unwrap();
-
-    if matches.is_none() {
-        println!("start: {}", start_expr.pretty(40));
-        println!("start: {:?}", start_expr);
-        panic!(
-            "\nCould not simplify\n{}\nto\n{}\n",
-            start,
-            end,
-        );
+fn get_batches_from_file(filename: &str) -> Vec<Vec<RecExpr<Math>>> {
+    let lines: Vec<Result<String, io::Error>> = read_lines(filename).unwrap().collect();
+    let mut results: Vec<Vec<RecExpr<_>>> = vec![];
+    for string_batch in lines.split(|line| line.as_ref().unwrap() == &"\"NEW BATCH\"".to_owned()) {
+	let mut current_batch = vec![];
+	for line in string_batch {
+	    current_batch.push(line.as_ref().unwrap().parse()
+			       .expect(&format!("{}{}", "Failed to parse ", &line.as_ref().unwrap())));
+	}
+	results.push(current_batch);
     }
+    results
+}
+
+fn write_row(data_file: &mut File, row: &Vec<f64>) {
+    write!(data_file, "{},{},{}\n",
+	   row[0].to_string(),
+	   row[1].to_string(),
+	   row[2].to_string());
+}
+
+fn write_run_data(data_file: &mut File, r: &Runner<Math, Meta>) -> Vec<f64> {
+    let mut search_time: f64 = 0.0;
+    let mut apply_time: f64 = 0.0;
+    let mut rebuild_time: f64 = 0.0;
+    for iteration in &r.iterations {
+	search_time += iteration.search_time;
+	apply_time += iteration.apply_time;
+	rebuild_time += iteration.rebuild_time;
+    }
+    let row = vec![search_time, apply_time, rebuild_time];
+    write_row(data_file, &row);
+    row
+    
+}
+
+#[test] #[ignore]
+fn time_egg() {
+    
+
+    let batches = get_batches_from_file("../time-regraph/exprs/math-exprs.txt");
+
+    let mut data_file = File::create("./timing-results.txt").unwrap();
+    let mut all_data: Vec<Vec<f64>> = vec![];
+    let mut counter = 0;
+    for batchi in 0..10 {
+	let batch = &batches[batchi];
+	print!("batch {}\n", counter);
+	counter += 1;
+	if(batch.len() > 0) {
+	    let mut runner = Runner::new()
+		.with_iter_limit(100)
+		.with_rules(rules().clone());
+	    for line in batch {
+		runner = runner.with_expr(&line);
+	    }
+	    runner = runner.run();
+	    let data = write_run_data(&mut data_file, &runner);
+	    all_data.push(data);
+	}
+    }
+    let mut average_file = File::create("./average.txt").unwrap();
+    let mut averages = vec![];
+    for j in 0..all_data[0].len() {
+	let mut sum = 0.0;
+	for i in 0..all_data.len() {
+	    sum += all_data[i][j];
+	}
+	averages.push(sum / (all_data.len()) as f64);
+    }
+    write_row(&mut average_file, &averages);
 }
