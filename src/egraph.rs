@@ -353,6 +353,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             parents: IndexSet::new(),
 	    #[cfg(feature = "rete")]
             rmatches: self.rete.make_node_matches(&enode),
+	    to_add: vec![],
         };
         M::modify(&mut class);
         let next_id = self.classes.make_set(class);
@@ -424,6 +425,15 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
 
         let (find, mut_values) = self.classes.split();
         for class in mut_values {
+	    // first add all from to_add
+	    let mut to_add_list = vec![];
+	    std::mem::swap(&mut to_add_list, &mut class.to_add);
+	    for to_add in to_add_list {
+		merge_retematches(&mut class.rmatches, &mut self.rete.make_node_matches(&to_add));
+		class.nodes.push(to_add);
+	    }
+	    
+	    
             let old_len = class.len();
 
             let unique: IndexSet<_> = class

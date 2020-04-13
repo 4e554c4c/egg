@@ -133,6 +133,9 @@ pub struct EClass<L, M> {
 
     #[cfg(feature = "rete")]
     pub rmatches: ReteMatches,
+    #[cfg(feature = "rete")]
+    pub to_add: Vec<ENode<L>>,
+    
     #[cfg(feature = "parent-pointers")]
     #[doc(hidden)]
     pub(crate) parents: indexmap::IndexSet<usize>,
@@ -152,6 +155,10 @@ impl<L, M> EClass<L, M> {
     /// Iterates over the enodes in the this eclass.
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &ENode<L>> {
         self.nodes.iter()
+    }
+
+    pub fn add_node(&mut self, enode : ENode<L>) {
+	self.to_add.push(enode);
     }
 }
 
@@ -185,6 +192,7 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
             metadata: to.metadata.merge(&from.metadata),
 	    #[cfg(feature = "rete")]
 	    rmatches: morermatches,
+	    to_add: vec![],
             #[cfg(feature = "parent-pointers")]
             parents: {
                 let mut parents = to.parents;

@@ -86,7 +86,7 @@ impl<L : Language> Rete<L> {
 	self.rpatstoleader.push(leader);
         idx
     }
-
+    
     /// Returns all `RetePat` which match the given query
     pub fn make_node_matches(&self, node: &ENode<L>) ->  ReteMatches {
 	let mut matches: ReteMatches = IndexMap::default();
