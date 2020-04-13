@@ -29,7 +29,7 @@ pub fn merge_retematches(to: &mut ReteMatches, from: &mut ReteMatches) {
 }
 
 // TODO make non public
-#[derive(Clone)]
+#[derive(std::hash::Hash, std::cmp::PartialEq, Eq, Clone)]
 pub enum RChild {
     Ref(RetePat),
     Var(Var),
@@ -38,6 +38,8 @@ pub enum RChild {
 #[derive(Clone)]
 pub struct Rete<L> {
     pub table: Vec<(ENode<L, RChild>, Vec<RuleIndex>)>,
+    // used when adding rules to check for duplicates
+    enodetorpat: HashMap<ENode<L, RChild>, RetePat>,
     // XXX use smallvec or no?
     // a retepat leader is the first rule with a given signature to be added
     leadertorpats: Vec<SmallVec<[RetePat; 2]>>,
@@ -49,6 +51,7 @@ impl<L : std::hash::Hash + Eq> Default for Rete<L> {
     fn default() -> Rete<L> {
         Rete {
             table: Vec::new(),
+	    enodetorpat: HashMap::new(),
 	    leadertorpats: vec![],
 	    rpatstoleader: vec![],
             map: HashMap::new(),
@@ -73,18 +76,26 @@ impl<L : Language> Rete<L> {
                 PatternAst::ENode(_) => RChild::Ref(self.add_pattern(&pattern, vec![]))
             });
 
-	let op = node.op.clone();
-	let op2 = node.op.clone();
-	let idx = self.table.len();
-        self.table.push((node, appliers));
-	self.map.entry((op, expr.children.len()))
-            .and_modify(|vec| vec.push(idx))
-            .or_insert(SmallVec::from_elem(idx,1));
-	let leader = self.map.get(&(op2, expr.children.len())).unwrap()[0];
-	self.leadertorpats.push(smallvec![]);
-	self.leadertorpats[leader].push(idx);
-	self.rpatstoleader.push(leader);
-        idx
+	if let Some(existing) = self.enodetorpat.get(&node) {
+	    self.table[*existing].1.extend(appliers);
+	    *existing
+	    
+	} else {
+	    let op = node.op.clone();
+	    let op2 = node.op.clone();
+	    let idx = self.table.len();
+	    self.enodetorpat.entry(node.clone())
+		.or_insert(idx);
+            self.table.push((node, appliers));
+	    self.map.entry((op, expr.children.len()))
+		.and_modify(|vec| vec.push(idx))
+		.or_insert(SmallVec::from_elem(idx,1));
+	    let leader = self.map.get(&(op2, expr.children.len())).unwrap()[0];
+	    self.leadertorpats.push(smallvec![]);
+	    self.leadertorpats[leader].push(idx);
+	    self.rpatstoleader.push(leader);
+            idx
+	}
     }
     
     /// Returns all `RetePat` which match the given query
@@ -138,7 +149,6 @@ impl<L : Language> Rete<L> {
     }
 
     pub fn extract_from_match<M>(&self, classes: &UnionFind<Id, EClass<L, M>>,rmatch: &ReteMatch, rpat: RetePat) -> Vec<Subst> {
-	let lhs = &self.table[rpat].0;
 	let mut new_substs = Vec::new();
 
 	
