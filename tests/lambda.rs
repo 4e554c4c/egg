@@ -1,4 +1,3 @@
-#![cfg(not(feature = "rete"))]
 use egg::{rewrite as rw, *};
 
 type EGraph = egg::EGraph<Lang, Meta>;
@@ -98,7 +97,7 @@ impl Metadata<Lang> for Meta {
 
     fn modify(eclass: &mut EClass<Lang, Self>) {
         if let Some(c) = eclass.metadata.constant.clone() {
-            eclass.nodes.push(ENode::leaf(c));
+            eclass.add_node(ENode::leaf(c));
         }
     }
 }
@@ -116,9 +115,10 @@ fn prove_something(start: &str, goals: &[&str]) {
     let (egraph, root) = egg_bench("lambda", || {
         let runner = Runner::new()
             .with_iter_limit(500)
-            .with_node_limit(6_000)
+            .with_node_limit(12_000)
+	    .with_rules(rules.clone())
             .with_expr(&start_expr)
-            .run(&rules);
+            .run();
         (runner.egraph, runner.roots[0])
     });
 
