@@ -72,6 +72,8 @@ mod pattern;
 mod rewrite;
 mod run;
 mod subst;
+#[cfg(feature = "rete")]
+mod rete;
 
 pub use dot::Dot;
 pub use eclass::{EClass, Metadata};

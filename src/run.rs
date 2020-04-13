@@ -153,6 +153,8 @@ pub struct Runner<L, M, IterData = ()> {
     /// Why the `Runner` stopped. This will be `None` if it hasn't
     /// stopped yet.
     pub stop_reason: Option<StopReason>,
+    
+    rules: Vec<Rewrite<L, M>>,
 
     // limits
     iter_limit: usize,
@@ -187,6 +189,7 @@ where
             time_limit: Duration::from_secs(60),
 
             egraph: EGraph::default(),
+	    rules: vec![],
             roots: vec![],
             iterations: vec![],
             stop_reason: None,
@@ -296,14 +299,23 @@ where
         Self { egraph, ..self }
     }
 
+    /// Replace the [`Rules`](struct.Rewrite.html) of this `Runner`.
+    pub fn with_rules(mut self, mut rules: Vec<Rewrite<L, M>>) -> Self {
+	for iter in 0..rules.len() {
+	    let rewrite = &mut rules[iter];
+	    self.egraph.rete.add_pattern(&rewrite.searcher.ast, vec![iter]);
+	}
+        Self { rules, ..self }
+    }
+
     /// Run this `Runner` until it stops.
     /// After this, the field
     /// [`stop_reason`](#structfield.stop_reason) is guaranteeed to be
     /// set.
-    pub fn run(mut self, rules: &[Rewrite<L, M>]) -> Self {
+    pub fn run(mut self) -> Self {
         // TODO check that we haven't
         loop {
-            if let Err(stop_reason) = self.run_one(rules) {
+            if let Err(stop_reason) = self.run_one() {
                 self.stop_reason = Some(stop_reason);
                 break;
             }
@@ -312,7 +324,7 @@ where
         self
     }
 
-    fn run_one(&mut self, rules: &[Rewrite<L, M>]) -> RunnerResult<()> {
+    fn run_one(&mut self) -> RunnerResult<()> {
         assert!(self.stop_reason.is_none());
 
         info!("Iteration {}", self.iterations.len());
@@ -327,13 +339,8 @@ where
 
         let search_time = Instant::now();
 
-        let mut matches = Vec::new();
-        for rule in rules {
-            let ms = self.scheduler.search_rewrite(i, &self.egraph, rule);
-            matches.push(ms);
-            self.check_limits()?;
-        }
-
+        let mut matches = self.egraph.rete_matches(self.rules.len());
+	
         let search_time = search_time.elapsed().as_secs_f64();
         info!("Search time: {}", search_time);
 

@@ -66,7 +66,7 @@ use crate::{
 /// [`Language`]: trait.Language.html
 #[derive(Debug, PartialEq, Clone)]
 pub struct Pattern<L> {
-    ast: PatternAst<L>,
+    pub ast: PatternAst<L>,
     program: machine::Program<L>,
 }
 

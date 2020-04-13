@@ -4,6 +4,7 @@ use std::iter::ExactSizeIterator;
 use crate::{
     unionfind::{Key, UnionFind, Value},
     EGraph, ENode, Id, Language,
+    rete::{ReteMatches, merge_retematches},
 };
 
 /** Arbitrary data associated with an [`EClass`].
@@ -129,6 +130,9 @@ pub struct EClass<L, M> {
     pub nodes: Vec<ENode<L>>,
     /// The metadata associated with this eclass.
     pub metadata: M,
+
+    #[cfg(feature = "rete")]
+    pub rmatches: ReteMatches,
     #[cfg(feature = "parent-pointers")]
     #[doc(hidden)]
     pub(crate) parents: indexmap::IndexSet<usize>,
@@ -168,10 +172,19 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
 
         more.extend(less);
 
+	let mut lessrmatches = to.rmatches;
+	let mut morermatches = from.rmatches;
+	if morermatches.len() < lessrmatches.len() {
+	    std::mem::swap(&mut lessrmatches, &mut morermatches);
+	}
+	merge_retematches(&mut morermatches, &mut lessrmatches);
+	
         let mut eclass = EClass {
             id: to.id,
             nodes: more,
             metadata: to.metadata.merge(&from.metadata),
+	    #[cfg(feature = "rete")]
+	    rmatches: morermatches,
             #[cfg(feature = "parent-pointers")]
             parents: {
                 let mut parents = to.parents;

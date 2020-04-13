@@ -3,7 +3,9 @@ use std::fmt::{self, Debug};
 use indexmap::{IndexMap, IndexSet};
 use log::*;
 
-use crate::{unionfind::UnionFind, Dot, EClass, ENode, Id, Language, Metadata, RecExpr};
+use crate::{unionfind::UnionFind, Dot, EClass, ENode, Id, Language, Metadata, RecExpr, Subst, SearchMatches};
+#[cfg(feature = "rete")]
+use crate::rete::{Rete,RetePat,RuleIndex, ReteMatch, merge_retematches};
 
 /** A data structure to keep track of equalities between expressions.
 
@@ -127,6 +129,8 @@ pub struct EGraph<L, M> {
     memo: IndexMap<ENode<L>, Id>,
     classes: UnionFind<Id, EClass<L, M>>,
     unions_since_rebuild: usize,
+    #[cfg(feature = "rete")]
+    pub rete: Rete<L>,
 }
 
 // manual debug impl to avoid L: Language bound on EGraph defn
@@ -147,6 +151,8 @@ impl<L, M> Default for EGraph<L, M> {
             memo: IndexMap::default(),
             classes: UnionFind::default(),
             unions_since_rebuild: 0,
+	    #[cfg(feature = "rete")]
+            rete: Rete::default(),
         }
     }
 }
@@ -173,6 +179,25 @@ impl<L, M> EGraph<L, M> {
     /// ```
     pub fn is_empty(&self) -> bool {
         self.memo.is_empty()
+    }
+
+    pub fn rete_matches(&self, rulelen: usize) -> Vec<Vec<SearchMatches>> {
+	let mut matches = Vec::new();
+	for i in 0..rulelen {
+	    matches.push(vec![]);
+	}
+
+	for eclass in self.classes() {
+	    let rulematches = self.rete.extract_matches(&self.classes, eclass);
+	    for (ruleindexes, substs) in rulematches {
+		for rulei in ruleindexes {
+		    matches[rulei].push(SearchMatches{eclass: eclass.id,
+						      substs: substs.clone()});
+		}
+	    }
+	}
+	
+	matches
     }
 
     /// Returns the number of enodes in the `EGraph`.
@@ -326,6 +351,8 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             metadata: M::make(self, &enode),
             #[cfg(feature = "parent-pointers")]
             parents: IndexSet::new(),
+	    #[cfg(feature = "rete")]
+            rmatches: self.rete.make_node_matches(&enode),
         };
         M::modify(&mut class);
         let next_id = self.classes.make_set(class);
@@ -409,6 +436,15 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
 
             class.nodes.clear();
             class.nodes.extend(unique);
+
+	    for (rpat, oldv) in class.rmatches.iter_mut() {
+		let unique: IndexSet<ReteMatch> = oldv
+		    .iter()
+		    .map(|rpat| rpat.iter().cloned().map(&find).collect())
+		    .collect();
+		oldv.clear();
+		oldv.extend(unique);
+	    }
         }
 
         trimmed

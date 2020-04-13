@@ -67,6 +67,16 @@ impl Subst {
             .iter()
             .find_map(|(v, id)| if v == var { Some(id) } else { None })
     }
+
+    pub(crate) fn from_item(var: Var, id: Id) -> Subst {
+	let mut subst = Subst::default();
+	subst.insert(var, id);
+	subst
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&Var, &Id)> {
+        self.vec.iter().map(|pair| (&pair.0, &pair.1))
+    }
 }
 
 impl std::ops::Index<&Var> for Subst {

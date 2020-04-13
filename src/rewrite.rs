@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{EGraph, Id, Language, Metadata, SearchMatches, Subst};
+use crate::{EGraph, Id, Language, Metadata, SearchMatches, Subst, PatternAst};
 
 /// A rewrite that searches for the lefthand side and applies the righthand side.
 ///
@@ -24,7 +24,8 @@ use crate::{EGraph, Id, Language, Metadata, SearchMatches, Subst};
 pub struct Rewrite<L, M> {
     name: String,
     long_name: String,
-    searcher: Rc<dyn Searcher<L, M>>,
+    pub searcher: Rc<dyn Searcher<L, M>>,
+    pub searcherast: PatternAst<L>,
     applier: Rc<dyn Applier<L, M>>,
 }
 
