@@ -108,7 +108,7 @@ impl Metadata<Math> for Meta {
         // not pruning would be just pushing instead of replacing
         let best = eclass.metadata.best.as_ref();
         if best.children.is_empty() {
-            eclass.nodes = vec![ENode::leaf(best.op.clone())]
+            eclass.nodes.push(ENode::leaf(best.op.clone()));
         }
     }
 }
@@ -411,7 +411,7 @@ fn write_run_data(data_file: &mut File, count_verification: &mut File, r: &Runne
 fn time_egg() {
     
     let batches = get_batches_from_file("../time-regraph/exprs/math-exprs.txt");
-    let mut node_count_verification = File::create("./node_verification_rete.txt").unwrap();
+    let mut node_count_verification = File::create("./node_verification_master.txt").unwrap();
 
     let mut data_file = File::create("./timing-results.txt").unwrap();
     let mut all_data: Vec<Vec<f64>> = vec![];
