@@ -1,6 +1,6 @@
 #![allow(dead_code, unused_imports, unused_variables, unreachable_code)]
 use crate::{EClass, EGraph, ENode, Id, Language, Pattern, PatternAst, Subst, Var};
-
+use smallvec::SmallVec;
 use log::trace;
 use std::cmp::Ordering;
 use std::fmt;
@@ -10,7 +10,7 @@ struct Machine<'a, L, M> {
     program: &'a [Instruction<L>],
     pc: usize,
     reg: Vec<Id>,
-    stack: Vec<Binder<'a, L>>,
+    stack: Vec<Binder<'a>>,
 }
 
 type Addr = usize;
@@ -24,27 +24,24 @@ pub enum Instruction<L> {
     Yield(Vec<Reg>),
 }
 
-struct Binder<'a, L> {
+struct Binder<'a> {
     out: Reg,
     next: Addr,
-    searcher: EClassSearcher<'a, L>,
+    searcher: EClassSearcher<'a>,
 }
 
-struct EClassSearcher<'a, L> {
-    op: L,
-    len: usize,
-    nodes: &'a [ENode<L>],
+struct EClassSearcher<'a> {
+    nodes: &'a [SmallVec<[Id; 2]>],
 }
 
-impl<'a, L: PartialEq> Iterator for EClassSearcher<'a, L> {
+impl<'a> Iterator for EClassSearcher<'a> {
     type Item = &'a [Id];
     fn next(&mut self) -> Option<Self::Item> {
-        for (i, enode) in self.nodes.iter().enumerate() {
-            if enode.op == self.op && enode.children.len() == self.len {
-                self.nodes = &self.nodes[i + 1..];
-                return Some(enode.children.as_slice());
-            }
-        }
+	if self.nodes.len() > 0 {
+	    let ret = self.nodes[0].as_slice();
+	    self.nodes = &self.nodes[1..];
+	    return Some(ret);
+	}
         None
     }
 }
@@ -108,15 +105,15 @@ impl<'a, L: Language, M> Machine<'a, L, M> {
             match instr {
                 Bind(i, op, len, out) => {
                     let eclass = &self.egraph[self.reg[*i]];
-                    self.stack.push(Binder {
-                        out: *out,
-                        next: self.pc,
-                        searcher: EClassSearcher {
-                            op: op.clone(),
-                            len: *len,
-                            nodes: &eclass.nodes,
-                        },
-                    });
+		    if let Some(matches) = &eclass.sighash.get(&(op.clone(), *len)) {
+			self.stack.push(Binder {
+                            out: *out,
+                            next: self.pc,
+                            searcher: EClassSearcher {
+				nodes: &matches,
+                            },
+			});
+		    }
                     backtrack!();
                 }
                 Check(i, t) => {

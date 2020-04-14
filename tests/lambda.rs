@@ -97,7 +97,7 @@ impl Metadata<Lang> for Meta {
 
     fn modify(eclass: &mut EClass<Lang, Self>) {
         if let Some(c) = eclass.metadata.constant.clone() {
-            eclass.nodes.push(ENode::leaf(c));
+           eclass.add_node(ENode::leaf(c));
         }
     }
 }

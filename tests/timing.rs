@@ -416,8 +416,8 @@ fn time_egg() {
     let mut data_file = File::create("./timing-results.txt").unwrap();
     let mut all_data: Vec<Vec<f64>> = vec![];
     let mut counter = 0;
-    let node_limit = 25000;
-    for batchi in 0..10 {
+    let node_limit = 20000;
+    for batchi in 0..20 {
 	let batch = &batches[batchi];
 	print!("batch {}\n", counter);
 	counter += 1;

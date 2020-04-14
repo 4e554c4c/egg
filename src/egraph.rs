@@ -1,5 +1,6 @@
 use std::fmt::{self, Debug};
-
+use std::collections::HashMap;
+use smallvec::SmallVec;
 use indexmap::{IndexMap, IndexSet};
 use log::*;
 
@@ -322,11 +323,13 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
         // HACK knowing the next key like this is pretty bad
         let mut class = EClass {
             id: self.classes.total_size() as Id,
-            nodes: vec![enode.clone()],
+            nodes: vec![],
+	    sighash: HashMap::new(),
             metadata: M::make(self, &enode),
             #[cfg(feature = "parent-pointers")]
             parents: IndexSet::new(),
         };
+	class.add_node(enode.clone());
         M::modify(&mut class);
         let next_id = self.classes.make_set(class);
         trace!("Added  {:4}: {:?}", next_id, enode);

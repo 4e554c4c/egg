@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 use std::iter::ExactSizeIterator;
-
+use std::collections::HashMap;
+use smallvec::SmallVec;
+use std::fmt;
 use crate::{
     unionfind::{Key, UnionFind, Value},
     EGraph, ENode, Id, Language,
@@ -117,21 +119,31 @@ impl<L: Language> Metadata<L> for () {
     fn make(_: &EGraph<L, Self>, _: &ENode<L>) {}
 }
 
+pub type SigHash<L> = HashMap<(L, usize), Vec<SmallVec<[Id; 2]>>>;
+
+
 /// An equivalence class of [`ENode`]s
 ///
 /// [`ENode`]: struct.ENode.html
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[non_exhaustive]
 pub struct EClass<L, M> {
     /// This eclass's id.
     pub id: Id,
     /// The equivalent enodes in this equivalence class.
     pub nodes: Vec<ENode<L>>,
+    pub sighash: SigHash<L>,
     /// The metadata associated with this eclass.
     pub metadata: M,
     #[cfg(feature = "parent-pointers")]
     #[doc(hidden)]
     pub(crate) parents: indexmap::IndexSet<usize>,
+}
+
+impl<L, M> fmt::Debug for EClass<L, M> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "eclass {}", self.id)
+    }
 }
 
 impl<L, M> EClass<L, M> {
@@ -151,8 +163,19 @@ impl<L, M> EClass<L, M> {
     }
 }
 
+impl<L: Language, M: Metadata<L>> EClass<L, M> {
+    pub fn add_node(&mut self, enode: ENode<L>) {
+	self.sighash.entry((enode.op.clone(), enode.children.len()))
+	    .and_modify(|vec| vec.push(enode.children.clone()))
+	    .or_insert(vec![enode.children.clone()]);
+	self.nodes.push(enode);
+    }
+}
+
+
 impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
     type Error = std::convert::Infallible;
+    
     fn merge<K: Key>(
         _unionfind: &mut UnionFind<K, Self>,
         to: Self,
@@ -167,10 +190,18 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
         }
 
         more.extend(less);
+	let mut sighash = to.sighash;
+
+	for (signature, subs) in from.sighash {
+	    sighash.entry(signature)
+		.and_modify(|vec| vec.extend(subs.clone()))
+		.or_insert(subs.clone());
+	}
 
         let mut eclass = EClass {
             id: to.id,
             nodes: more,
+	    sighash: sighash,
             metadata: to.metadata.merge(&from.metadata),
             #[cfg(feature = "parent-pointers")]
             parents: {
