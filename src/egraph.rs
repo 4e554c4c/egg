@@ -200,6 +200,14 @@ impl<L : Language, M> EGraph<L, M> {
 	matches
     }
 
+    pub fn all_old_matches(&mut self) {
+	for eclass in self.classes_mut() {
+	    for (rpat, rset) in &mut eclass.rmatches {
+		rset.newi = rset.matches.len();
+	    }
+	}
+    }
+
     /// Returns the number of enodes in the `EGraph`.
     ///
     /// Actually returns the size of the hashcons index.
@@ -353,6 +361,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             parents: IndexSet::new(),
 	    #[cfg(feature = "rete")]
             rmatches: self.rete.make_node_matches(&enode),
+	    just_added: false,
 	    to_add: vec![],
         };
         M::modify(&mut class);
@@ -429,7 +438,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
 	    let mut to_add_list = vec![];
 	    std::mem::swap(&mut to_add_list, &mut class.to_add);
 	    for to_add in to_add_list {
-		merge_retematches(&mut class.rmatches, &mut self.rete.make_node_matches(&to_add));
+		merge_retematches(&mut class.rmatches, &mut self.rete.make_node_matches(&to_add), true);
 		class.nodes.push(to_add);
 	    }
 	    
@@ -447,13 +456,23 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             class.nodes.clear();
             class.nodes.extend(unique);
 
-	    for (rpat, oldv) in class.rmatches.iter_mut() {
-		let unique: IndexSet<ReteMatch> = oldv
-		    .iter()
-		    .map(|rpat| rpat.iter().cloned().map(&find).collect())
-		    .collect();
-		oldv.clear();
-		oldv.extend(unique);
+	    for (rpat, rset) in class.rmatches.iter_mut() {
+		let mut unique: IndexSet<ReteMatch> = IndexSet::default();
+		for i in 0..rset.newi {
+		    unique.insert(rset.matches[i].iter().cloned().map(&find).collect());
+		}
+
+		let mut uniquerest : IndexSet<ReteMatch> = IndexSet::default();
+		for i in rset.newi..rset.matches.len() {
+		    let n = rset.matches[i].iter().cloned().map(&find).collect();
+		    if !unique.contains(&n) {
+			uniquerest.insert(n);
+		    }
+		}
+		rset.matches.clear();
+		rset.matches.extend(unique);
+		rset.newi = rset.matches.len();
+		rset.matches.extend(uniquerest);
 	    }
         }
 
@@ -597,6 +616,10 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             }
         }
         to
+    }
+
+    pub fn set_just_added(&mut self, id: Id, added: bool) {
+	self.classes.get_mut(id).just_added = added;
     }
 
     #[cfg(feature = "parent-pointers")]

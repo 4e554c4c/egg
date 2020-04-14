@@ -135,6 +135,8 @@ pub struct EClass<L, M> {
     pub rmatches: ReteMatches,
     #[cfg(feature = "rete")]
     pub to_add: Vec<ENode<L>>,
+    // used for knowing if it has a parent right away
+    pub just_added: bool,
     
     #[cfg(feature = "parent-pointers")]
     #[doc(hidden)]
@@ -181,10 +183,12 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
 
 	let mut lessrmatches = to.rmatches;
 	let mut morermatches = from.rmatches;
+	let mut just_added = from.just_added;
 	if morermatches.len() < lessrmatches.len() {
 	    std::mem::swap(&mut lessrmatches, &mut morermatches);
+	    just_added = to.just_added;
 	}
-	merge_retematches(&mut morermatches, &mut lessrmatches);
+	merge_retematches(&mut morermatches, &mut lessrmatches, just_added);
 	
         let mut eclass = EClass {
             id: to.id,
@@ -192,6 +196,7 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
             metadata: to.metadata.merge(&from.metadata),
 	    #[cfg(feature = "rete")]
 	    rmatches: morermatches,
+	    just_added: false,
 	    to_add: vec![],
             #[cfg(feature = "parent-pointers")]
             parents: {

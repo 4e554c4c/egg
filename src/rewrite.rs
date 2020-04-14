@@ -264,7 +264,13 @@ where
                 let ids = self
                     .apply_one(egraph, mat.eclass, subst)
                     .into_iter()
-                    .filter_map(|id| egraph.union_if_different(id, mat.eclass));
+                    .filter_map(|id| {
+			egraph.set_just_added(id, true);
+			let res = egraph.union_if_different(id, mat.eclass);
+			egraph.set_just_added(id, false);
+			res    
+			    
+		    });
                 added.extend(ids)
             }
         }

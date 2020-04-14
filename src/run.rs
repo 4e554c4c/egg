@@ -344,6 +344,8 @@ where
         let search_time = search_time.elapsed().as_secs_f64();
         info!("Search time: {}", search_time);
 
+	self.egraph.all_old_matches();
+	
         let apply_time = Instant::now();
 
         let mut applied = IndexMap::new();
