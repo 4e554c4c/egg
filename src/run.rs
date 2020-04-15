@@ -290,6 +290,7 @@ where
     pub fn with_expr(mut self, expr: &RecExpr<L>) -> Self {
         let id = self.egraph.add_expr(expr);
         self.roots.push(id);
+	self.egraph.rebuild();
         self
     }
 
@@ -331,7 +332,6 @@ where
 
         let start_time = Instant::now();
 
-	self.egraph.rebuild();
         let mut matches = Vec::new();
         for rule in rules {
             let ms = self.scheduler.search_rewrite(i, &self.egraph, rule);
