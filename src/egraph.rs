@@ -414,30 +414,40 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
         for class in mut_values {
             let old_len = class.len();
 
-	    let mut hash: HashMap<(L, usize), IndexSet<ENode<L>>> = HashMap::new();
-	    for node in class.nodes.iter() {
-		hash.entry((node.op.clone(), node.children.len()))
-		    .and_modify(|set| {set.insert(node.map_children(&find));})
-		    .or_insert({
-			let mut n = IndexSet::new();
-			n.insert(node.map_children(&find));
-			n
-		    });
-	    }
+	    if old_len < 30 {
+		let unique: IndexSet<_> = class
+                    .nodes
+                    .iter()
+                    .map(|node| node.map_children(&find))
+                    .collect();
 
-	    class.nodes.clear();
-	    class.sighash.clear();
-	    let mut i = 0;
-	    for (sig, set) in hash {
-		class.sighash.entry(sig.clone())
-		    .or_insert((i, i+set.len()));
-		i += set.len();
-		class.nodes.extend(set.clone());
-	    }
-	    if i > 10 {
-		class.usesighash = true;
-	    } else {
+		trimmed += old_len - unique.len();
+
 		class.usesighash = false;
+		class.nodes.clear();
+		class.nodes.extend(unique);
+	    } else {
+		let mut hash: HashMap<(L, usize), IndexSet<ENode<L>>> = HashMap::new();
+		for node in class.nodes.iter() {
+		    hash.entry((node.op.clone(), node.children.len()))
+			.and_modify(|set| {set.insert(node.map_children(&find));})
+			.or_insert({
+			    let mut n = IndexSet::new();
+			    n.insert(node.map_children(&find));
+			    n
+			});
+		}
+
+		class.usesighash = true;
+		class.nodes.clear();
+		class.sighash.clear();
+		let mut i = 0;
+		for (sig, set) in hash {
+		    class.sighash.entry(sig.clone())
+			.or_insert((i, i+set.len()));
+		    i += set.len();
+		    class.nodes.extend(set.clone());
+		}
 	    }
 	    
             trimmed += old_len - class.nodes.len();
@@ -486,7 +496,6 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
     #[cfg(not(feature = "parent-pointers"))]
     pub fn rebuild(&mut self) {
         if self.unions_since_rebuild == 0 {
-	    self.rebuild_classes();
             info!("Skipping rebuild!");
             return;
         }
