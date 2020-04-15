@@ -184,7 +184,7 @@ where
         Self {
             iter_limit: 30,
             node_limit: 10_000,
-            time_limit: Duration::from_secs(60),
+            time_limit: Duration::from_secs(5),
 
             egraph: EGraph::default(),
             roots: vec![],
@@ -242,6 +242,8 @@ pub struct Iteration<IterData> {
     /// Seconds spent [`rebuild`](struct.EGraph.html#method.rebuild)ing
     /// the egraph in this iteration.
     pub rebuild_time: f64,
+    /// Total time spent in this iteration, including data generation time.
+    pub total_time: f64,
     /// The user provided annotation for this iteration
     pub data: IterData,
 }
@@ -264,7 +266,7 @@ where
         Self { node_limit, ..self }
     }
 
-    /// Sets the runner time limit. Default: 60 seconds
+    /// Sets the runner time limit. Default: 5 seconds
     pub fn with_time_limit(self, time_limit: Duration) -> Self {
         Self { time_limit, ..self }
     }
@@ -304,6 +306,7 @@ where
         // TODO check that we haven't
         loop {
             if let Err(stop_reason) = self.run_one(rules) {
+                info!("Stopping: {:?}", stop_reason);
                 self.stop_reason = Some(stop_reason);
                 break;
             }
@@ -316,7 +319,7 @@ where
     fn run_one(&mut self, rules: &[Rewrite<L, M>]) -> RunnerResult<()> {
         assert!(self.stop_reason.is_none());
 
-        info!("Iteration {}", self.iterations.len());
+        info!("\nIteration {}", self.iterations.len());
 
         self.try_start();
         self.check_limits()?;
@@ -326,7 +329,7 @@ where
         let egraph_classes = self.egraph.number_of_classes();
         trace!("EGraph {:?}", self.egraph.dump());
 
-        let search_time = Instant::now();
+        let start_time = Instant::now();
 
 	self.egraph.rebuild();
         let mut matches = Vec::new();
@@ -336,7 +339,7 @@ where
             self.check_limits()?;
         }
 
-        let search_time = search_time.elapsed().as_secs_f64();
+        let search_time = start_time.elapsed().as_secs_f64();
         info!("Search time: {}", search_time);
 
         let apply_time = Instant::now();
@@ -387,7 +390,7 @@ where
             apply_time,
             rebuild_time,
             data: IterData::make(&self),
-            // best_cost,
+            total_time: start_time.elapsed().as_secs_f64(),
         });
 
         if saturated {
@@ -418,261 +421,6 @@ where
 
         Ok(())
     }
-
-    // /// The pre-iteration hook. If this returns an error, then the
-    // /// search will stop. Useful for checking stop conditions or
-    // /// updating `Runner` state.
-    // ///
-    // /// Default implementation simply returns `Ok(())`.
-    // fn pre_step(&mut self, egraph: &mut EGraph<L, M>) -> RunnerResult<()> {
-    //     info!(
-    //         "\n\nIteration {}, n={}, e={}",
-    //         self.i,
-    //         egraph.total_size(),
-    //         egraph.number_of_classes()
-    //     );
-    //     if self.i >= self.iter_limit {
-    //         Err(StopReason::IterationLimit(self.i))
-    //     } else {
-    //         Ok(())
-    //     }
-    // }
-
-    // fn during_step(&mut self, egraph: &EGraph<L, M>) -> RunnerResult<()> {
-    //     let size = egraph.total_size();
-    //     let elapsed = self.start_time.elapsed();
-    //     if size > self.node_limit {
-    //         Err(StopReason::NodeLimit(size))
-    //     } else if elapsed > self.time_limit {
-    //         Err(StopReason::TimeLimit(elapsed.as_secs_f64()))
-    //     } else {
-    //         Ok(())
-    //     }
-    // }
-
-    // fn post_step(
-    //     &mut self,
-    //     iteration: &Iteration,
-    //     _egraph: &mut EGraph<L, M>,
-    // ) -> RunnerResult<()> {
-    //     let is_banned = |s: &RuleStats| s.banned_until > self.i;
-    //     let any_bans = self.stats.values().any(is_banned);
-
-    //     self.i += 1;
-    //     if !any_bans && iteration.applied.is_empty() {
-    //         Err(StopReason::Saturated)
-    //     } else {
-    //         Ok(())
-    //     }
-    // }
-
-    // /// The post-iteration hook. If this returns an error, then the
-    // /// search will stop. Useful for checking stop conditions or
-    // /// updating `Runner` state.
-    // ///
-    // /// Default implementation simply returns `Ok(())`.
-    // fn post_step(
-    //     &mut self,
-    //     _iteration: &Iteration,
-    //     _egraph: &mut EGraph<L, M>,
-    // ) -> Result<(), Self::Error> {
-    //     Ok(())
-    // }
-
-    // /// The intra-iteration hook. If this returns an error, then the
-    // /// search will stop. Useful for checking stop conditions.
-    // /// This is called after search each rule and after applying each rule.
-    // ///
-    // /// Default implementation simply returns `Ok(())`.
-    // fn during_step(&mut self, _egraph: &EGraph<L, M>) -> Result<(), Self::Error> {
-    //     Ok(())
-    // }
-
-    // /// Run the rewrites once on the egraph.
-    // ///
-    // /// It first searches all the rules using the [`search_rewrite`] wrapper.
-    // /// Then it applies all the rules using the [`apply_rewrite`] wrapper.
-    // ///
-    // /// ## Expectations
-    // ///
-    // /// After searching or applying a rule, this should call
-    // /// [`during_step`], returning immediately if it returns an error.
-    // /// This should _not_ call [`pre_step`] or [`post_step`], those
-    // /// should be called by the [`run`] method.
-    // ///
-    // /// Default implementation just calls
-    // /// [`Rewrite::apply`](struct.Rewrite.html#method.apply)
-    // /// and returns number of new applications.
-    // ///
-    // /// ## Default implementation
-    // ///
-    // /// The default implementation is probably good enough.
-    // /// It conforms to all the above expectations, and it performs the
-    // /// necessary bookkeeping to return an [`Iteration`].
-    // /// It additionally performs useful logging at the debug and info
-    // /// levels.
-    // /// If you're using [`env_logger`](https://docs.rs/env_logger/)
-    // /// (which the tests of `egg` do),
-    // /// see its documentation on how to see the logs.
-    // ///
-    // /// [`search_rewrite`]: trait.Runner.html#method.search_rewrite
-    // /// [`apply_rewrite`]: trait.Runner.html#method.apply_rewrite
-    // /// [`pre_step`]: trait.Runner.html#method.pre_step
-    // /// [`during_step`]: trait.Runner.html#method.during_step
-    // /// [`post_step`]: trait.Runner.html#method.post_step
-    // /// [`run`]: trait.Runner.html#method.run
-    // /// [`Iteration`]: struct.Iteration.html
-    // fn step(
-    //     &mut self,
-    //     egraph: &mut EGraph<L, M>,
-    //     rules: &[Rewrite<L, M>],
-    // ) -> RunnerResult<Iteration> {
-    //     let egraph_nodes = egraph.total_size();
-    //     let egraph_classes = egraph.number_of_classes();
-    //     trace!("EGraph {:?}", egraph.dump());
-
-    //     let search_time = Instant::now();
-
-    //     let mut matches = Vec::new();
-    //     for rule in rules.iter() {
-    //         let ms = self.search_rewrite(egraph, rule);
-    //         matches.push(ms);
-    //         self.during_step(egraph)?
-    //     }
-
-    //     let search_time = search_time.elapsed().as_secs_f64();
-    //     info!("Search time: {}", search_time);
-
-    //     let apply_time = Instant::now();
-
-    //     let mut applied = IndexMap::new();
-    //     for (rw, ms) in rules.iter().zip(matches) {
-    //         let total_matches: usize = ms.iter().map(|m| m.substs.len()).sum();
-    //         if total_matches == 0 {
-    //             continue;
-    //         }
-
-    //         debug!("Applying {} {} times", rw.name(), total_matches);
-
-    //         let actually_matched = self.apply_rewrite(egraph, rw, ms);
-    //         if actually_matched > 0 {
-    //             if let Some(count) = applied.get_mut(rw.name()) {
-    //                 *count += 1;
-    //             } else {
-    //                 applied.insert(rw.name().to_owned(), 1);
-    //             }
-    //             debug!("Applied {} {} times", rw.name(), actually_matched);
-    //         }
-
-    //         self.during_step(egraph)?
-    //     }
-
-    //     let apply_time = apply_time.elapsed().as_secs_f64();
-    //     info!("Apply time: {}", apply_time);
-
-    //     let rebuild_time = Instant::now();
-    //     egraph.rebuild();
-
-    //     let rebuild_time = rebuild_time.elapsed().as_secs_f64();
-    //     info!("Rebuild time: {}", rebuild_time);
-    //     info!(
-    //         "Size: n={}, e={}",
-    //         egraph.total_size(),
-    //         egraph.number_of_classes()
-    //     );
-
-    //     trace!("Running post_step...");
-    //     Ok(Iteration {
-    //         applied,
-    //         egraph_nodes,
-    //         egraph_classes,
-    //         search_time,
-    //         apply_time,
-    //         rebuild_time,
-    //         // best_cost,
-    //     })
-    // }
-
-    // /// Run the rewrites on the egraph until an error.
-    // ///
-    // /// This should call [`pre_step`], [`step`], and [`post_step`] in
-    // /// a loop, in that order, until one of them returns an error.
-    // /// It returns the completed [`Iteration`]s and the error that
-    // /// caused it to stop.
-    // ///
-    // /// The default implementation does these things.
-    // ///
-    // /// [`pre_step`]: trait.Runner.html#method.pre_step
-    // /// [`step`]: trait.Runner.html#method.step
-    // /// [`post_step`]: trait.Runner.html#method.post_step
-    // /// [`Iteration`]: struct.Iteration.html
-    // fn run(
-    //     &mut self,
-    //     egraph: &mut EGraph<L, M>,
-    //     rules: &[Rewrite<L, M>],
-    // ) -> (Vec<Iteration>, Self::Error) {
-    //     let mut iterations = vec![];
-    //     let mut fn_loop = || -> Result<(), Self::Error> {
-    //         loop {
-    //             trace!("Running pre_step...");
-    //             self.pre_step(egraph)?;
-    //             trace!("Running step...");
-    //             iterations.push(self.step(egraph, rules)?);
-    //             trace!("Running post_step...");
-    //             self.post_step(iterations.last().unwrap(), egraph)?;
-    //         }
-    //     };
-    //     let stop_reason = fn_loop().unwrap_err();
-    //     info!("Stopping {:?}", stop_reason);
-    //     (iterations, stop_reason)
-    // }
-
-    // /// Given an initial expression, make and egraph and [`run`] the
-    // /// rules on it.
-    // ///
-    // /// The default implementation does exactly this, also performing
-    // /// the bookkeeping needed to return a [`RunReport`].
-    // ///
-    // /// [`run`]: trait.Runner.html#method.run
-    // /// [`RunReport`]: struct.RunReport.html
-    // fn run_expr(
-    //     &mut self,
-    //     initial_expr: RecExpr<L>,
-    //     rules: &[Rewrite<L, M>],
-    // ) -> (EGraph<L, M>, RunReport<L, Self::Error>) {
-    //     // let initial_cost = calculate_cost(&initial_expr);
-    //     // info!("Without empty: {}", initial_expr.pretty(80));
-
-    //     let (mut egraph, initial_expr_eclass) = EGraph::from_expr(&initial_expr);
-
-    //     let rules_time = Instant::now();
-    //     let (iterations, stop_reason) = self.run(&mut egraph, rules);
-    //     let rules_time = rules_time.elapsed().as_secs_f64();
-
-    //     // let extract_time = Instant::now();
-    //     // let best = Extractor::new(&egraph).find_best(root);
-    //     // let extract_time = extract_time.elapsed().as_secs_f64();
-
-    //     // info!("Extract time: {}", extract_time);
-    //     // info!("Initial cost: {}", initial_cost);
-    //     // info!("Final cost: {}", best.cost);
-    //     // info!("Final: {}", best.expr.pretty(80));
-
-    //     let report = RunReport {
-    //         iterations,
-    //         rules_time,
-    //         // extract_time,
-    //         stop_reason,
-    //         // ast_size: best.expr.ast_size(),
-    //         // ast_depth: best.expr.ast_depth(),
-    //         initial_expr,
-    //         initial_expr_eclass: egraph.find(initial_expr_eclass),
-    //         // initial_cost,
-    //         // final_cost: best.cost,
-    //         // final_expr: best.expr,
-    //     };
-    //     (egraph, report)
-    // }
 }
 
 /** A way to customize how a [`Runner`] runs [`Rewrite`]s.
@@ -694,8 +442,9 @@ where
     /// Whether or not the [`Runner`](struct.Runner.html) is allowed
     /// to say it has saturated.
     ///
+    /// This is only called when the runner is otherwise saturated.
     /// Default implementation just returns `true`.
-    fn can_stop(&self, iteration: usize) -> bool {
+    fn can_stop(&mut self, iteration: usize) -> bool {
         true
     }
 
@@ -817,10 +566,47 @@ where
     L: Language,
     M: Metadata<L>,
 {
-    fn can_stop(&self, iteration: usize) -> bool {
-        let is_banned = |s: &RuleStats| s.banned_until > iteration;
-        let any_bans = self.stats.values().any(is_banned);
-        !any_bans
+    fn can_stop(&mut self, iteration: usize) -> bool {
+        let n_stats = self.stats.len();
+        assert!(n_stats > 0);
+
+        let mut banned: Vec<_> = self
+            .stats
+            .iter_mut()
+            .filter(|(_, s)| s.banned_until > iteration)
+            .collect();
+
+        if banned.is_empty() {
+            true
+        } else {
+            let min_ban = banned
+                .iter()
+                .map(|(_, s)| s.banned_until)
+                .min()
+                .expect("banned cannot be empty here");
+
+            assert!(min_ban >= iteration);
+            let delta = min_ban - iteration;
+
+            let mut unbanned = vec![];
+            for (name, s) in &mut banned {
+                s.banned_until -= delta;
+                if s.banned_until == iteration {
+                    unbanned.push(name.as_str());
+                }
+            }
+
+            assert!(!unbanned.is_empty());
+            info!(
+                "Banned {}/{}, fast-forwarded by {} to unban {}",
+                banned.len(),
+                n_stats,
+                delta,
+                unbanned.join(", "),
+            );
+
+            false
+        }
     }
 
     fn search_rewrite(
