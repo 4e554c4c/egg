@@ -1,5 +1,5 @@
 use std::fmt::{self, Debug};
-
+use std::collections::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use log::*;
 
@@ -323,6 +323,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
         let mut class = EClass {
             id: self.classes.total_size() as Id,
             nodes: vec![enode.clone()],
+	    sighash: HashMap::new(),
             metadata: M::make(self, &enode),
             #[cfg(feature = "parent-pointers")]
             parents: IndexSet::new(),
@@ -399,16 +400,28 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
         for class in mut_values {
             let old_len = class.len();
 
-            let unique: IndexSet<_> = class
-                .nodes
-                .iter()
-                .map(|node| node.map_children(&find))
-                .collect();
+	    let mut hash: HashMap<(L, usize), IndexSet<ENode<L>>> = HashMap::new();
+	    for node in class.nodes.iter() {
+		hash.entry((node.op.clone(), node.children.len()))
+		    .and_modify(|set| {set.insert(node.map_children(&find));})
+		    .or_insert({
+			let mut n = IndexSet::new();
+			n.insert(node.map_children(&find));
+			n
+		    });
+	    }
 
-            trimmed += old_len - unique.len();
-
-            class.nodes.clear();
-            class.nodes.extend(unique);
+	    class.nodes.clear();
+	    class.sighash.clear();
+	    let mut i = 0;
+	    for (sig, set) in hash {
+		class.sighash.entry(sig.clone())
+		    .or_insert(i);
+		i += set.len();
+		class.nodes.extend(set.clone());
+	    }
+	    
+            trimmed += old_len - class.nodes.len();
         }
 
         trimmed
@@ -454,6 +467,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
     #[cfg(not(feature = "parent-pointers"))]
     pub fn rebuild(&mut self) {
         if self.unions_since_rebuild == 0 {
+	    self.rebuild_classes();
             info!("Skipping rebuild!");
             return;
         }

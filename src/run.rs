@@ -308,6 +308,7 @@ where
                 break;
             }
         }
+	self.egraph.rebuild();
 
         self
     }
@@ -327,6 +328,7 @@ where
 
         let search_time = Instant::now();
 
+	self.egraph.rebuild();
         let mut matches = Vec::new();
         for rule in rules {
             let ms = self.scheduler.search_rewrite(i, &self.egraph, rule);

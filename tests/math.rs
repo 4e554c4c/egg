@@ -103,7 +103,7 @@ impl Metadata<Math> for Meta {
         // not pruning would be just pushing instead of replacing
         let best = eclass.metadata.best.as_ref();
         if best.children.is_empty() {
-            eclass.nodes = vec![ENode::leaf(best.op.clone())]
+            eclass.nodes.push(ENode::leaf(best.op.clone()));
         }
     }
 }

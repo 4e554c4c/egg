@@ -108,15 +108,17 @@ impl<'a, L: Language, M> Machine<'a, L, M> {
             match instr {
                 Bind(i, op, len, out) => {
                     let eclass = &self.egraph[self.reg[*i]];
-                    self.stack.push(Binder {
-                        out: *out,
-                        next: self.pc,
-                        searcher: EClassSearcher {
-                            op: op.clone(),
-                            len: *len,
-                            nodes: &eclass.nodes,
-                        },
-                    });
+		    if let Some(i) = eclass.sighash.get(&(op.clone(), *len)) {
+			self.stack.push(Binder {
+                            out: *out,
+                            next: self.pc,
+                            searcher: EClassSearcher {
+				op: op.clone(),
+				len: *len,
+				nodes: &eclass.nodes[*i..],
+                            },
+			});
+		    }
                     backtrack!();
                 }
                 Check(i, t) => {

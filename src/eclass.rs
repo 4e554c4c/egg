@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 use std::iter::ExactSizeIterator;
+use std::collections::HashMap;
+use std::fmt;
 
 use crate::{
     unionfind::{Key, UnionFind, Value},
@@ -117,22 +119,30 @@ impl<L: Language> Metadata<L> for () {
     fn make(_: &EGraph<L, Self>, _: &ENode<L>) {}
 }
 
-/// An equivalence class of [`ENode`]s
-///
-/// [`ENode`]: struct.ENode.html
-#[derive(Debug, Clone)]
+
+pub type Sighash<L> = HashMap<(L, usize), usize>;
+			   
+#[derive(Clone)]
 #[non_exhaustive]
 pub struct EClass<L, M> {
     /// This eclass's id.
     pub id: Id,
     /// The equivalent enodes in this equivalence class.
     pub nodes: Vec<ENode<L>>,
+    pub sighash: Sighash<L>,
     /// The metadata associated with this eclass.
     pub metadata: M,
     #[cfg(feature = "parent-pointers")]
     #[doc(hidden)]
     pub(crate) parents: indexmap::IndexSet<usize>,
 }
+
+impl<L, M> fmt::Debug for EClass<L, M> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "eclass {}", self.id)
+    }
+}
+
 
 impl<L, M> EClass<L, M> {
     /// Returns `true` if the `eclass` is empty.
@@ -171,6 +181,7 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
         let mut eclass = EClass {
             id: to.id,
             nodes: more,
+	    sighash: HashMap::new(),
             metadata: to.metadata.merge(&from.metadata),
             #[cfg(feature = "parent-pointers")]
             parents: {
