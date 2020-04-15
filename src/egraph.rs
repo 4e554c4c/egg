@@ -324,6 +324,7 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
             id: self.classes.total_size() as Id,
             nodes: vec![enode.clone()],
 	    sighash: HashMap::new(),
+	    usesighash: false,
             metadata: M::make(self, &enode),
             #[cfg(feature = "parent-pointers")]
             parents: IndexSet::new(),
@@ -429,9 +430,14 @@ impl<L: Language, M: Metadata<L>> EGraph<L, M> {
 	    let mut i = 0;
 	    for (sig, set) in hash {
 		class.sighash.entry(sig.clone())
-		    .or_insert(i);
+		    .or_insert((i, i+set.len()));
 		i += set.len();
 		class.nodes.extend(set.clone());
+	    }
+	    if i > 10 {
+		class.usesighash = true;
+	    } else {
+		class.usesighash = false;
 	    }
 	    
             trimmed += old_len - class.nodes.len();

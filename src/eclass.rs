@@ -120,7 +120,7 @@ impl<L: Language> Metadata<L> for () {
 }
 
 
-pub type Sighash<L> = HashMap<(L, usize), usize>;
+pub type Sighash<L> = HashMap<(L, usize), (usize, usize)>;
 			   
 #[derive(Clone)]
 #[non_exhaustive]
@@ -129,6 +129,7 @@ pub struct EClass<L, M> {
     pub id: Id,
     /// The equivalent enodes in this equivalence class.
     pub nodes: Vec<ENode<L>>,
+    pub usesighash: bool,
     pub sighash: Sighash<L>,
     /// The metadata associated with this eclass.
     pub metadata: M,
@@ -182,6 +183,7 @@ impl<L: Language, M: Metadata<L>> Value for EClass<L, M> {
             id: to.id,
             nodes: more,
 	    sighash: HashMap::new(),
+	    usesighash: false,
             metadata: to.metadata.merge(&from.metadata),
             #[cfg(feature = "parent-pointers")]
             parents: {

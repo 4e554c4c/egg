@@ -33,18 +33,27 @@ struct Binder<'a, L> {
 struct EClassSearcher<'a, L> {
     op: L,
     len: usize,
+    allmatches: bool,
     nodes: &'a [ENode<L>],
 }
 
 impl<'a, L: PartialEq> Iterator for EClassSearcher<'a, L> {
     type Item = &'a [Id];
     fn next(&mut self) -> Option<Self::Item> {
-        for (i, enode) in self.nodes.iter().enumerate() {
-            if enode.op == self.op && enode.children.len() == self.len {
-                self.nodes = &self.nodes[i + 1..];
-                return Some(enode.children.as_slice());
+	if self.allmatches {
+	    if self.nodes.len() > 0 {
+		let res = Some(self.nodes[0].children.as_slice());
+		self.nodes = &self.nodes[1..];
+		return res;
+	    }
+	} else {
+            for (i, enode) in self.nodes.iter().enumerate() {
+		if enode.op == self.op && enode.children.len() == self.len {
+                    self.nodes = &self.nodes[i + 1..];
+                    return Some(enode.children.as_slice());
+		}
             }
-        }
+	}
         None
     }
 }
@@ -108,15 +117,29 @@ impl<'a, L: Language, M> Machine<'a, L, M> {
             match instr {
                 Bind(i, op, len, out) => {
                     let eclass = &self.egraph[self.reg[*i]];
-		    if let Some(i) = eclass.sighash.get(&(op.clone(), *len)) {
+		    if eclass.usesighash {
+			if let Some((a, b)) = eclass.sighash.get(&(op.clone(), *len)) {
+			    self.stack.push(Binder {
+				out: *out,
+				next: self.pc,
+				searcher: EClassSearcher {
+				    op: op.clone(),
+				    len: 0,
+				    allmatches: true,
+				    nodes: &eclass.nodes[*a..*b],
+				},
+			    });
+			}
+		    } else {
 			self.stack.push(Binder {
-                            out: *out,
-                            next: self.pc,
-                            searcher: EClassSearcher {
+			    out: *out,
+			    next: self.pc,
+			    searcher: EClassSearcher {
 				op: op.clone(),
 				len: *len,
-				nodes: &eclass.nodes[*i..],
-                            },
+				allmatches: false,
+				nodes: &eclass.nodes,
+			    },
 			});
 		    }
                     backtrack!();
