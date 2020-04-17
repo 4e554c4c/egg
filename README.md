@@ -1,36 +1,19 @@
 # egg: egraphs good
 
-[![Build Status](https://github.com/mwillsey/egg/workflows/Build%20and%20Test/badge.svg?branch=master)](https://github.com/mwillsey/egg/actions)
-[![Crates.io](https://img.shields.io/crates/v/egg.svg)](https://crates.io/crates/egg)
-[![Docs.rs](https://docs.rs/egg/badge.svg)](https://docs.rs/egg/)
+This is a submission for Oliver Flatt and Calvin Lee's Software Verification final project at the U of U.
 
-Check out the [web demo](https://mwillsey.com/stuff/egg) for some quick egraph action.
 
-## Using egg
+This folder contains the final branch of the implementation of E-Graph matching inspired by the RETE algorithm.
 
-Add `egg` to your `Cargo.toml` like this:
-```toml
-[dependencies]
-egg = "0.3.0"
-```
+The main file to look at is src/rete.rs, which is used by src/egraph.rs.
 
-## Developing
+Another file to look at is tests/timing.rs, which contains a file that times the performance of the algorithm with rewrite rules taken from the Herbie project.
+Run these tests with the command `cargo test time_egg --release -- --nocapture --ignored`
 
-It's written in [Rust](https://www.rust-lang.org/).
-Typically, you install Rust using [`rustup`](https://www.rust-lang.org/tools/install).
 
-Run `cargo doc --open` to build and open the documentation in a browser.
+Also note that not all the tests in lambda.rs pass (known bug), but the tests in math.rs pass. Verify this using `cargo test math`.
 
-Before committing/pushing, make sure to run `make`, which runs all the tests and lints that CI will.
-
-### Tests
-
-You will need [`graphviz`](https://www.graphviz.org/download/) to run the tests.
-Running `cargo test` will run the tests.
-
-There are a couple interesting tests in the `tests` directory:
-
-- `prop.rs` implements propositional logic and proves some simple
-  theorems.
-- `math.rs` implements real arithmetic, with a little bit of symbolic differentiation.
-- `lambda.rs` implements a small lambda calculus, using `egg` as a partial evaluator.
+After learning about potential speedups from experimenting with RETE, the final product of the project is a PR to the `egg` project. This PR got merged into master, and can be seen here:
+[https://github.com/mwillsey/egg/pull/21]
+(https://github.com/mwillsey/egg/pull/21)
+The PR has more details about the contents.
